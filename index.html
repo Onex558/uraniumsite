@@ -91,6 +91,64 @@ h1{
 .clock-time{font-weight:700;font-size:1.15em;}
 .clock-date{font-size:0.72em;opacity:0.7;}
 
+/* ===== APPS SECTION ===== */
+.apps-section {
+  margin-bottom: 32px;
+}
+.section-title {
+  font-size: 1.15em;
+  color: var(--primary);
+  margin-bottom: 14px;
+  letter-spacing: 1px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+.app-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--blur));
+  border-radius: 16px;
+  border: 1px solid rgba(var(--primary-rgb), 0.35);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 18px rgba(var(--primary-rgb), 0.15);
+}
+.app-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 0 28px rgba(var(--primary-rgb), 0.35);
+}
+.app-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(var(--primary-rgb), 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6em;
+  flex-shrink: 0;
+}
+.app-info h3 {
+  font-size: 1.05em;
+  color: var(--primary);
+  margin-bottom: 3px;
+}
+.app-info p {
+  font-size: 0.78em;
+  color: rgba(var(--primary-rgb), 0.6);
+}
+
 .top-controls{
   display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
   margin:0 0 22px;align-items:center;
@@ -186,18 +244,36 @@ h1{
 }
 @keyframes spin{to{transform:rotate(360deg);}}
 
+/* ===== GAME MODAL ===== */
 #gameModal{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.94);
   z-index:9999;align-items:center;justify-content:center;flex-direction:column;
 }
 #gameFrame{width:92%;height:86%;border:none;border-radius:14px;box-shadow:0 0 32px rgba(var(--primary-rgb),0.45);background:#000;}
-#closeBtn{
-  position:absolute;top:22px;right:40px;
-  background:var(--primary);color:#000;font-weight:700;font-size:1.05em;
-  padding:10px 22px;border:none;border-radius:30px;cursor:pointer;
-  box-shadow:0 0 18px rgba(var(--primary-rgb),0.55);transition:0.25s;
+.modal-controls {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
 }
-#closeBtn:hover{filter:brightness(1.15);transform:scale(1.04);}
+.modal-btn {
+  background: var(--primary);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.95em;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(var(--primary-rgb), 0.55);
+  transition: 0.25s;
+}
+.modal-btn:hover {
+  filter: brightness(1.15);
+  transform: scale(1.04);
+}
 #modalError{display:none;flex-direction:column;align-items:center;gap:12px;color:#ff5c5c;text-align:center;max-width:420px;}
 #modalError .icon{font-size:2.3em;}
 
@@ -261,6 +337,20 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <p class="status-line" id="statusLine">Loading…</p>
   </header>
 
+  <!-- ===== APPS SECTION ===== -->
+  <div class="apps-section">
+    <div class="section-title">📱 Apps</div>
+    <div class="apps-grid">
+      <div class="app-card" onclick="openApp('Uranium AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/webgpumultimidelz.html')">
+        <div class="app-icon">🤖</div>
+        <div class="app-info">
+          <h3>Uranium AI</h3>
+          <p>Chat with AI • Free</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="top-controls">
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
@@ -278,8 +368,12 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   </div>
 </div>
 
+<!-- GAME MODAL -->
 <div id="gameModal">
-  <button id="closeBtn">Close ✕</button>
+  <div class="modal-controls">
+    <button class="modal-btn" id="fullscreenBtn">⛶ Fullscreen</button>
+    <button class="modal-btn" id="closeBtn">Close ✕</button>
+  </div>
   <iframe id="gameFrame" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals"></iframe>
   <div id="modalError">
     <div class="icon">⚠️</div>
@@ -296,42 +390,34 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <label>Primary Color</label>
     <input type="color" id="setPrimary" value="#00ff88">
   </div>
-
   <div class="settings-group">
     <label>Background</label>
     <input type="color" id="setBg" value="#0a0e1a">
   </div>
-
   <div class="settings-group">
     <label>Glow <span id="glowVal">35%</span></label>
     <input type="range" id="setGlow" min="0" max="100" value="35">
   </div>
-
   <div class="settings-group">
     <label>Blur <span id="blurVal">12px</span></label>
     <input type="range" id="setBlur" min="0" max="28" value="12">
   </div>
-
   <div class="settings-group">
     <label>Card Size <span id="cardVal">200px</span></label>
     <input type="range" id="setCard" min="160" max="280" value="200">
   </div>
-
   <div class="settings-group">
     <label>Font Size <span id="fontVal">100%</span></label>
     <input type="range" id="setFont" min="80" max="130" value="100">
   </div>
-
   <div class="settings-group">
     <label>Animation <span id="animVal">100%</span></label>
     <input type="range" id="setAnim" min="0" max="150" value="100">
   </div>
-
   <div class="settings-group">
     <label>Particles <span id="partVal">18</span></label>
     <input type="range" id="setParticles" min="0" max="40" value="18">
   </div>
-
   <div class="settings-group">
     <label>Clock Format</label>
     <select id="setClockFormat">
@@ -339,21 +425,19 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
       <option value="24">24-hour</option>
     </select>
   </div>
-
   <div class="settings-group">
     <label class="settings-row">
       <span>Reduced Motion</span>
       <input type="checkbox" id="setReducedMotion">
     </label>
   </div>
-
   <div class="settings-group">
     <label class="settings-row">
       <span>🛡️ Stealth Mode (Tab Cloaking)</span>
       <input type="checkbox" id="setStealth">
     </label>
     <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
-      Changes the browser tab name to look like Google Slides, Docs, Drive, Classroom, etc.
+      Changes the browser tab name + favicon to look like Google Slides, Docs, Drive, Classroom, etc.
     </p>
   </div>
 
@@ -381,7 +465,6 @@ const DEFAULTS = {
 let settings = loadSettings();
 let allGames = [];
 let currentBlobUrl = null;
-let currentFilter = 'all';
 let cloakInterval = null;
 
 const gamesGrid   = document.getElementById('gamesGrid');
@@ -391,12 +474,10 @@ const searchInput = document.getElementById('searchInput');
 const gameModal   = document.getElementById('gameModal');
 const gameFrame   = document.getElementById('gameFrame');
 const modalError  = document.getElementById('modalError');
-const filterBar   = document.getElementById('filterBar');
 const particlesEl = document.getElementById('particles');
 
 /* ========== FULL GAME LIST ========== */
 const customGames = [
-  { name:"Uranium AI", author:"Uranium Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(52).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/webgpumultimidelz.html" },
   { name:"Doom", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/1200.webp", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom.html" },
   { name:"Doom 2", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/ss_05f81f237a6370c3c797af951b42291dc747d199.1920x1080.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom2.html" },
   { name:"Doom 3", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom3box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom3.html" },
@@ -524,13 +605,12 @@ const customGames = [
   { name:"Moto x3m", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(55).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/motox3m.html" },
   { name:"Moto x3m 2", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(56).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clmotox3m2.html" },
   { name:"Moto x3m Winter", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/moto-x3m-4-winter-logo.jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/motox3mwinter.html" },
-  { name:"Google Dino Game", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/unnamed%20(1).png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clgoogledino.html" },
+    { name:"Google Dino Game", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/unnamed%20(1).png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clgoogledino.html" },
   { name:"Pac Man", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(2).png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/pacman.html" },
   { name:"Parking fury", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(57).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/parkingfury.html" },
   { name:"Fruit Ninja", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(58).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/fruitninja.html" },
   { name:"Flappy bird", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(59).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clflappybird.html" },
-
-  ];
+];
 
 /* ========== SETTINGS ========== */
 function loadSettings() {
@@ -543,21 +623,21 @@ function saveSettings() {
   localStorage.setItem('uraniumSettings', JSON.stringify(settings));
 }
 
-/* ========== TAB CLOAKING ========== */
-const CLOAK_TITLES = [
-  "Google Slides",
-  "Google Docs",
-  "Google Drive",
-  "Google Classroom",
-  "Classroom",
-  "Kahoot!",
-  "Canvas",
-  "Google Sheets",
-  "Meet - Google",
-  "Docs",
-  "Slides",
-  "Drive",
-  "New Tab"
+/* ========== IMPROVED TAB CLOAKING ========== */
+const CLOAK_PROFILES = [
+  { title: "Google Slides", icon: "📊" },
+  { title: "Google Docs", icon: "📄" },
+  { title: "Google Drive", icon: "📁" },
+  { title: "Google Classroom", icon: "🎓" },
+  { title: "Classroom", icon: "🎓" },
+  { title: "Kahoot!", icon: "🎮" },
+  { title: "Canvas", icon: "📘" },
+  { title: "Google Sheets", icon: "📈" },
+  { title: "Meet - Google", icon: "📹" },
+  { title: "Docs", icon: "📄" },
+  { title: "Slides", icon: "📊" },
+  { title: "Drive", icon: "📁" },
+  { title: "New Tab", icon: "🌐" }
 ];
 
 function applyCloaking() {
@@ -567,18 +647,20 @@ function applyCloaking() {
 
   if (settings.stealth) {
     document.body.classList.add('stealth');
-    const randomTitle = CLOAK_TITLES[Math.floor(Math.random() * CLOAK_TITLES.length)];
-    document.title = randomTitle;
-    titleEl.textContent = "📊 " + randomTitle;
+    const profile = CLOAK_PROFILES[Math.floor(Math.random() * CLOAK_PROFILES.length)];
+    document.title = profile.title;
+    titleEl.textContent = profile.icon + " " + profile.title;
     taglineEl.textContent = "Educational resources and tools";
-    favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📄</text></svg>";
-    
+    favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${profile.icon}</text></svg>`;
+
     if (cloakInterval) clearInterval(cloakInterval);
     cloakInterval = setInterval(() => {
       if (settings.stealth) {
-        document.title = CLOAK_TITLES[Math.floor(Math.random() * CLOAK_TITLES.length)];
+        const p = CLOAK_PROFILES[Math.floor(Math.random() * CLOAK_PROFILES.length)];
+        document.title = p.title;
+        favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${p.icon}</text></svg>`;
       }
-    }, 8000 + Math.random() * 7000);
+    }, 9000 + Math.random() * 6000);
   } else {
     document.body.classList.remove('stealth');
     document.title = "Uranium Games";
@@ -682,10 +764,6 @@ function handleSearch() {
   renderGames(results);
 }
 
-function buildFilters() {
-  filterBar.innerHTML = '';
-}
-
 async function loadAllSources() {
   allGames = [...customGames];
   const unique = [];
@@ -700,7 +778,7 @@ async function loadAllSources() {
   handleSearch();
 }
 
-/* ========== GAME OPENING ========== */
+/* ========== GAME / APP OPENING ========== */
 function showModalError(name, reason) {
   gameFrame.style.display = 'none';
   modalError.style.display = 'flex';
@@ -727,7 +805,14 @@ function getCloakingScript() {
 }
 
 function openGame(game) {
-  const url = game.resolvedUrl;
+  openInModal(game.name, game.resolvedUrl);
+}
+
+function openApp(name, url) {
+  openInModal(name, url);
+}
+
+function openInModal(name, url) {
   if (!url) return;
   gameFrame.src = 'about:blank';
   hideModalError();
@@ -754,7 +839,7 @@ function openGame(game) {
       if (err.message === 'EMPTY') reason = 'Empty response.';
       else if (err.message?.startsWith('HTTP_')) reason = 'File not found.';
       else if (err.message === 'Failed to fetch') reason = 'Network error.';
-      showModalError(game.name, reason);
+      showModalError(name, reason);
     });
 }
 
@@ -763,7 +848,22 @@ function closeModal() {
   gameFrame.src = 'about:blank';
   hideModalError();
   if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+  // Exit fullscreen if active
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
 }
+
+/* Fullscreen button */
+document.getElementById('fullscreenBtn').onclick = () => {
+  if (!document.fullscreenElement) {
+    gameModal.requestFullscreen().catch(err => {
+      console.log('Fullscreen error:', err);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+};
 
 /* ========== SETTINGS UI ========== */
 const panel   = document.getElementById('settingsPanel');
