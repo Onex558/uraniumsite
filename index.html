@@ -46,7 +46,7 @@ header{
   background:var(--card-bg);
   backdrop-filter:blur(var(--blur));
   border-radius:22px;
-  margin-bottom:24px;
+  margin-bottom:28px;
   box-shadow:
     0 0 calc(40px * var(--glow)) rgba(var(--primary-rgb),0.35),
     inset 0 0 60px rgba(var(--primary-rgb),0.08),
@@ -90,29 +90,6 @@ h1{
 }
 .clock-time{font-weight:700;font-size:1.15em;}
 .clock-date{font-size:0.72em;opacity:0.7;}
-
-/* ===== AI DOWNLOAD BUTTON ===== */
-.ai-download {
-  text-align: center;
-  margin: 0 0 26px;
-}
-.ai-download a {
-  display: inline-block;
-  background: var(--primary);
-  color: #000;
-  font-weight: 700;
-  padding: 14px 36px;
-  border-radius: 50px;
-  text-decoration: none;
-  font-size: 1.05em;
-  letter-spacing: 0.3px;
-  box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.4);
-  transition: all 0.25s ease;
-}
-.ai-download a:hover {
-  transform: scale(1.06);
-  box-shadow: 0 0 40px rgba(var(--primary-rgb), 0.65);
-}
 
 .top-controls{
   display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
@@ -284,13 +261,6 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <p class="status-line" id="statusLine">Loading…</p>
   </header>
 
-  <!-- ========== AI DOWNLOAD BUTTON ========== -->
-  <div class="ai-download">
-    <a href="https://drive.google.com/file/d/1NZPD7x_rupB4OSAJb6Blh0hh_S99lmQy/view?usp=drivesdk" target="_blank" rel="noopener">
-      ↓ Download to use AI
-    </a>
-  </div>
-
   <div class="top-controls">
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
@@ -383,7 +353,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
       <input type="checkbox" id="setStealth">
     </label>
     <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
-      Changes the browser tab name to look like Google Spades, Docs, Drive, Classroom, etc.
+      Changes the browser tab name to look like Google Slides, Docs, Drive, Classroom, etc.
     </p>
   </div>
 
@@ -426,6 +396,7 @@ const particlesEl = document.getElementById('particles');
 
 /* ========== FULL GAME LIST ========== */
 const customGames = [
+  { name:"Uranium AI", author:"Uranium Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/webgpumultimidelz.html" },
   { name:"Doom", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/1200.webp", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom.html" },
   { name:"Doom 2", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/ss_05f81f237a6370c3c797af951b42291dc747d199.1920x1080.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom2.html" },
   { name:"Doom 3", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom3box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom3.html" },
@@ -532,23 +503,22 @@ const customGames = [
   { name:"Stack", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(25).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/stack.html" },
   { name:"Happy Wheels", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/happy-wheels-logo.avif", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clhappywheels.html" },
   { name:"Orange Roulette", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(27).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clOrangeRoulette.html" },
-  { name:"Angry Birds", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(31).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/angrybirds.html" },
   { name:"Friday Night Funkin Twiddler Finger", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(32).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfTWIDDLEFINGER.html" },
-  { name:"Friday Night Funkin Aethos ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(33).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfaethos.html" },
-  { name:"Friday Night Funkin Binary Breakdown ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(34).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfbinarybreakdown.html" },
-  { name:"Friday Night Funkin Below depths ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(35).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfbelowdepths.html" },
-  { name:"Friday Night Funkin Black Betrayal  ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(36).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfblackbetrayal.html" },
-  { name:"Friday Night Funkin B Side  ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(37).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfblackbetrayal.html" },
-  { name:"Friday Night Funkin Candy Carrier ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(38).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfcandycarrier.html" },
-  { name:"Friday Night Funkin Chara ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(39).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfchara.html" },
-  { name:"Friday Night Funkin City Tales ", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(40).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfcitytales.html" },
+  { name:"Friday Night Funkin Aethos", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(33).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfaethos.html" },
+  { name:"Friday Night Funkin Binary Breakdown", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(34).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfbinarybreakdown.html" },
+  { name:"Friday Night Funkin Below depths", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(35).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfbelowdepths.html" },
+  { name:"Friday Night Funkin Black Betrayal", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(36).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfblackbetrayal.html" },
+  { name:"Friday Night Funkin B Side", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(37).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfblackbetrayal.html" },
+  { name:"Friday Night Funkin Candy Carrier", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(38).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfcandycarrier.html" },
+  { name:"Friday Night Funkin Chara", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(39).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfchara.html" },
+  { name:"Friday Night Funkin City Tales", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(40).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfcitytales.html" },
   { name:"Friday Night Funkin Corrision", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(17).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfridaynightfunkin.html" },
   { name:"Friday Night Funkin Cory", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/maxresdefault.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfcory.html" },
   { name:"Friday Night Funkin Crunchin", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(42).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfcrunchin.html" },
-  { name:"Friday Night Funkin'Deceiver", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(43).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfdeciever.html" },
+  { name:"Friday Night Funkin Deceiver", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(43).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfdeciever.html" },
   { name:"Friday Night Funkin Desolation", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(44).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfdesolation.html" },
   { name:"Friday Night Funkin Golden Apple", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(50).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clfnfgoldenapple.html" },
-  { name:"Doodle Jump", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(49).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/cldoodlejumpgoober.html" },
+  { name:"Doodle Jump", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(49).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/cldoodlejumpgoober.html" }
 ];
 
 /* ========== SETTINGS ========== */
