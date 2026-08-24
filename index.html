@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -312,6 +311,59 @@ h1{
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;display:none;}
 .overlay.show{display:block;}
 
+/* ===== ANNOUNCEMENT POPUP ===== */
+#announceOverlay{
+  display:none;position:fixed;inset:0;z-index:20000;
+  background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);
+  align-items:center;justify-content:center;padding:20px;
+}
+#announceOverlay.show{display:flex;}
+.announce-box{
+  width:min(440px,94vw);
+  background:var(--card-bg);
+  backdrop-filter:blur(var(--blur));
+  border:1px solid rgba(var(--primary-rgb),0.4);
+  border-radius:20px;
+  padding:28px 26px 22px;
+  box-shadow:0 0 40px rgba(var(--primary-rgb),0.3),0 16px 48px rgba(0,0,0,0.55);
+  animation:announceIn 0.4s ease-out;
+  text-align:center;
+  position:relative;
+}
+@keyframes announceIn{
+  from{opacity:0;transform:translateY(18px) scale(0.96);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+.announce-icon{
+  font-size:2.6em;margin-bottom:10px;
+  filter:drop-shadow(0 0 12px rgba(var(--primary-rgb),0.5));
+}
+.announce-box h2{
+  color:var(--primary);font-size:1.45em;font-weight:800;
+  margin-bottom:10px;letter-spacing:0.5px;
+}
+.announce-box p{
+  color:rgba(255,255,255,0.75);font-size:0.95em;line-height:1.55;
+  margin-bottom:10px;
+}
+.announce-box .announce-note{
+  font-size:0.82em;color:rgba(var(--primary-rgb),0.65);margin-bottom:18px;
+}
+.announce-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.announce-actions button{
+  padding:12px 22px;border-radius:12px;border:none;font-weight:700;
+  font-size:0.95em;cursor:pointer;transition:0.2s;
+}
+.announce-actions .announce-ok{
+  background:var(--primary);color:#000;
+  box-shadow:0 0 18px rgba(var(--primary-rgb),0.45);
+}
+.announce-actions .announce-ok:hover{filter:brightness(1.1);transform:scale(1.03);}
+.announce-actions .announce-discord{
+  background:#5865F2;color:#fff;
+}
+.announce-actions .announce-discord:hover{filter:brightness(1.1);transform:scale(1.03);}
+
 /* Stealth visual */
 body.stealth header::before{content:'📊';}
 body.stealth h1{
@@ -346,6 +398,13 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   <div class="apps-section">
     <div class="section-title">📱 Apps</div>
     <div class="apps-grid">
+      <div class="app-card" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer')">
+        <div class="app-icon">💬</div>
+        <div class="app-info">
+          <h3>Discord</h3>
+          <p>Join the server • Free</p>
+        </div>
+      </div>
       <div class="app-card" onclick="openApp('Uranium AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/uraniumainew.html')">
         <div class="app-icon">🤖</div>
         <div class="app-info">
@@ -353,7 +412,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
           <p>Chat with AI • Free</p>
         </div>
       </div>
-      <div class="app-card" onclick="openApp('DriveFlix', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/netfolixa.html')">
+      <div class="app-card" onclick="openApp('DriveFlix', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/irankummivies.html')">
         <div class="app-icon">🎬</div>
         <div class="app-info">
           <h3>DriveFlix</h3>
@@ -391,6 +450,20 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <div class="icon">⚠️</div>
     <div id="modalErrorTitle" style="font-size:1.25em;font-weight:700;color:#fff;"></div>
     <div id="modalErrorReason" style="font-size:0.9em;color:rgba(255,255,255,0.6);"></div>
+  </div>
+</div>
+
+<!-- ANNOUNCEMENT POPUP -->
+<div id="announceOverlay" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
+  <div class="announce-box">
+    <div class="announce-icon">☢️</div>
+    <h2 id="announceTitle">Welcome to Uranium</h2>
+    <p>Play hundreds of games instantly. Use <strong>Apps</strong> for Discord, AI, and movies.</p>
+    <p class="announce-note">Tip: closing a game may lose your progress — save if you can.</p>
+    <div class="announce-actions">
+      <button type="button" class="announce-discord" id="announceDiscord">Join Discord</button>
+      <button type="button" class="announce-ok" id="announceOk">Got it</button>
+    </div>
   </div>
 </div>
 
@@ -935,16 +1008,29 @@ function getCloakingScript() {
   <\/script>`;
 }
 
+let activeSessionName = null;
+
+function confirmLeaveProgress(actionLabel) {
+  if (gameModal.style.display !== 'flex' || !activeSessionName) return true;
+  return confirm(
+    'You might lose your progress if you ' + actionLabel + '.\n\n' +
+    'Leave "' + activeSessionName + '" anyway?'
+  );
+}
+
 function openGame(game) {
+  if (!confirmLeaveProgress('switch games')) return;
   openInModal(game.name, game.resolvedUrl);
 }
 
 function openApp(name, url) {
+  if (!confirmLeaveProgress('open another app')) return;
   openInModal(name, url);
 }
 
 function openInModal(name, url) {
   if (!url) return;
+  activeSessionName = name || 'this session';
   gameFrame.src = 'about:blank';
   hideModalError();
   gameModal.style.display = 'flex';
@@ -977,11 +1063,13 @@ function openInModal(name, url) {
 }
 
 function closeModal() {
+  if (!confirmLeaveProgress('leave')) return;
   gameModal.classList.remove('open');
   gameModal.style.display = 'none';
   document.body.style.overflow = '';
   gameFrame.src = 'about:blank';
   hideModalError();
+  activeSessionName = null;
   if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
   // Exit fullscreen if active
   if (document.fullscreenElement) {
@@ -1064,7 +1152,32 @@ document.addEventListener('keydown', e => {
 applySettings();
 updateClock();
 setInterval(updateClock, 1000);
-window.addEventListener('load', loadAllSources);
+/* ===== FIRST-VISIT ANNOUNCEMENT ===== */
+function showAnnouncementIfNeeded() {
+  try {
+    if (localStorage.getItem('uraniumAnnounceSeen') === '1') return;
+  } catch (_) {}
+  const overlay = document.getElementById('announceOverlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+  const dismiss = () => {
+    overlay.classList.remove('show');
+    try { localStorage.setItem('uraniumAnnounceSeen', '1'); } catch (_) {}
+  };
+  document.getElementById('announceOk').onclick = dismiss;
+  document.getElementById('announceDiscord').onclick = () => {
+    window.open('https://discord.gg/9TqZVcfvh4', '_blank', 'noopener,noreferrer');
+    dismiss();
+  };
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) dismiss();
+  });
+}
+
+window.addEventListener('load', () => {
+  loadAllSources();
+  setTimeout(showAnnouncementIfNeeded, 400);
+});
 </script>
 </body>
 </html>
