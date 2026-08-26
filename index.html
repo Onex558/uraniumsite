@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,6 +155,17 @@ h1{
 .top-controls{
   display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
   margin:0 0 22px;align-items:center;
+}
+.about-blank-btn,.data-btn{
+  background:rgba(10,20,30,0.9);
+  border:2px solid rgba(var(--primary-rgb),0.28);
+  color:rgba(var(--primary-rgb),0.75);
+  padding:9px 18px;border-radius:30px;font-size:0.88em;font-weight:600;
+  letter-spacing:0.8px;cursor:pointer;transition:all 0.22s ease;
+}
+.about-blank-btn:hover,.data-btn:hover{
+  border-color:var(--primary);color:var(--primary);
+  box-shadow:0 0 14px rgba(var(--primary-rgb),0.28);
 }
 .search-bar input{
   width:min(520px,90vw);padding:14px 24px;font-size:1.05em;
@@ -426,6 +438,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
     </div>
+    <button class="about-blank-btn" id="openSiteAboutBlank" title="Open this entire site in a blank tab (no URL)">📄 Open Site in about:blank</button>
     <button class="settings-btn" id="openSettings">⚙️ Settings</button>
   </div>
 
@@ -442,6 +455,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 <!-- GAME MODAL -->
 <div id="gameModal">
   <div class="modal-controls">
+    <button class="modal-btn" id="aboutBlankGameBtn" title="Open current game in about:blank">📄 about:blank</button>
     <button class="modal-btn" id="fullscreenBtn">⛶ Fullscreen</button>
     <button class="modal-btn" id="closeBtn">Close ✕</button>
   </div>
@@ -525,6 +539,28 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
       Changes the browser tab name + favicon to look like Google Slides, Docs, Drive, Classroom, etc.
     </p>
   </div>
+  <div class="settings-group">
+    <label class="settings-row">
+      <span>📄 Open games in about:blank</span>
+      <input type="checkbox" id="setOpenAboutBlank">
+    </label>
+    <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
+      When enabled, games and apps open in a new about:blank window instead of the modal.
+    </p>
+  </div>
+
+  <div class="settings-group">
+    <label>📦 Data</label>
+    <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-bottom:10px;line-height:1.45;">
+      Export settings + games list as JSON. Download to back up, or import to restore.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button type="button" class="data-btn" id="exportDataBtn" style="width:100%;">📤 Export Data</button>
+      <button type="button" class="data-btn" id="downloadDataBtn" style="width:100%;">⬇️ Download Data</button>
+      <button type="button" class="data-btn" id="importDataBtn" style="width:100%;">📥 Import Data</button>
+      <input type="file" id="importDataFile" accept=".json,application/json" style="display:none;">
+    </div>
+  </div>
 
   <div class="settings-actions">
     <button id="resetSettings" class="secondary">Reset</button>
@@ -544,7 +580,8 @@ const DEFAULTS = {
   particles: 18,
   clockFormat: '12',
   reducedMotion: false,
-  stealth: false
+  stealth: false,
+  openAboutBlank: false
 };
 
 let settings = loadSettings();
@@ -1009,6 +1046,7 @@ function getCloakingScript() {
 }
 
 let activeSessionName = null;
+let activeSessionUrl = null;
 
 function confirmLeaveProgress(actionLabel) {
   if (gameModal.style.display !== 'flex' || !activeSessionName) return true;
@@ -1018,19 +1056,87 @@ function confirmLeaveProgress(actionLabel) {
   );
 }
 
+function openInAboutBlankWindow(title, htmlOrUrl, isHtml) {
+  const win = window.open('about:blank', '_blank');
+  if (!win) {
+    alert('Popup blocked. Allow popups for this site to open in about:blank.');
+    return null;
+  }
+  try {
+    win.document.open();
+    if (isHtml) {
+      win.document.write(htmlOrUrl);
+    } else {
+      // Redirect-style: meta refresh or location
+      win.document.write(
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
+        (title || 'Game').replace(/</g, '&lt;') +
+        '</title></head><body style="margin:0;background:#000;"><iframe src="' +
+        String(htmlOrUrl).replace(/"/g, '&quot;') +
+        '" style="border:0;width:100vw;height:100vh;" allowfullscreen></iframe></body></html>'
+      );
+    }
+    win.document.close();
+    try { win.document.title = title || 'Game'; } catch (_) {}
+  } catch (e) {
+    console.warn('about:blank write failed', e);
+    try { win.location = typeof htmlOrUrl === 'string' && !isHtml ? htmlOrUrl : 'about:blank'; } catch (_) {}
+  }
+  return win;
+}
+
+function fetchHtmlForAboutBlank(url) {
+  const cacheBuster = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+  return fetch(cacheBuster)
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP_' + res.status);
+      return res.text();
+    })
+    .then(html => {
+      if (html.length < 50) throw new Error('EMPTY');
+      const safety = getCloakingScript();
+      return html.toLowerCase().includes('<head>')
+        ? html.replace(/<head>/i, '<head>' + safety)
+        : safety + html;
+    });
+}
+
 function openGame(game) {
   if (!confirmLeaveProgress('switch games')) return;
-  openInModal(game.name, game.resolvedUrl);
+  if (settings.openAboutBlank) {
+    openGameInAboutBlank(game.name, game.resolvedUrl);
+  } else {
+    openInModal(game.name, game.resolvedUrl);
+  }
 }
 
 function openApp(name, url) {
   if (!confirmLeaveProgress('open another app')) return;
-  openInModal(name, url);
+  if (settings.openAboutBlank) {
+    openGameInAboutBlank(name, url);
+  } else {
+    openInModal(name, url);
+  }
+}
+
+function openGameInAboutBlank(name, url) {
+  if (!url) return;
+  activeSessionName = name || 'this session';
+  activeSessionUrl = url;
+  fetchHtmlForAboutBlank(url)
+    .then(html => {
+      openInAboutBlankWindow(name, html, true);
+    })
+    .catch(err => {
+      console.warn('Fetch failed, opening URL in about:blank iframe:', err.message);
+      openInAboutBlankWindow(name, url, false);
+    });
 }
 
 function openInModal(name, url) {
   if (!url) return;
   activeSessionName = name || 'this session';
+  activeSessionUrl = url;
   gameFrame.src = 'about:blank';
   hideModalError();
   gameModal.style.display = 'flex';
@@ -1054,10 +1160,8 @@ function openInModal(name, url) {
       gameFrame.src = currentBlobUrl;
     })
     .catch(err => {
-      // Fallback: load URL directly in iframe (handles CORS / external hosts)
       console.warn('Blob load failed, trying direct iframe:', err.message);
       gameFrame.src = url;
-      // Still show a soft note if it fails later; for now hide error
       hideModalError();
     });
 }
@@ -1070,14 +1174,14 @@ function closeModal() {
   gameFrame.src = 'about:blank';
   hideModalError();
   activeSessionName = null;
+  activeSessionUrl = null;
   if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
-  // Exit fullscreen if active
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
   }
 }
 
-/* Fullscreen button */
+/* Fullscreen + about:blank from modal */
 document.getElementById('fullscreenBtn').onclick = () => {
   if (!document.fullscreenElement) {
     gameModal.requestFullscreen().catch(err => {
@@ -1087,6 +1191,121 @@ document.getElementById('fullscreenBtn').onclick = () => {
     document.exitFullscreen();
   }
 };
+
+document.getElementById('aboutBlankGameBtn').onclick = () => {
+  if (!activeSessionUrl) return;
+  const name = activeSessionName || 'Game';
+  const url = activeSessionUrl;
+  fetchHtmlForAboutBlank(url)
+    .then(html => openInAboutBlankWindow(name, html, true))
+    .catch(() => openInAboutBlankWindow(name, url, false));
+};
+
+/* ========== EXPORT / DOWNLOAD / IMPORT DATA ========== */
+function buildExportPayload() {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    settings: { ...settings },
+    gamesCache: allGames.map(g => ({
+      name: g.name,
+      author: g.author,
+      resolvedCover: g.resolvedCover,
+      resolvedUrl: g.resolvedUrl,
+      source: g.source,
+      special: g.special || []
+    }))
+  };
+}
+
+function downloadJson(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function exportData() {
+  const payload = buildExportPayload();
+  downloadJson('uranium-data-' + new Date().toISOString().slice(0, 10) + '.json', payload);
+  statusLine.textContent = 'Data exported (' + (payload.gamesCache?.length || 0) + ' games)';
+}
+
+function downloadData() {
+  // Same payload; alias for clarity / user request
+  exportData();
+}
+
+function importDataFromObject(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error('Invalid data');
+  if (obj.settings && typeof obj.settings === 'object') {
+    settings = { ...DEFAULTS, ...obj.settings };
+    saveSettings();
+    applySettings();
+  }
+  if (Array.isArray(obj.gamesCache) && obj.gamesCache.length) {
+    allGames = obj.gamesCache.map(g => ({
+      name: g.name,
+      author: g.author || 'Unknown',
+      resolvedCover: g.resolvedCover || '',
+      resolvedUrl: g.resolvedUrl || '',
+      source: g.source || 'uranium',
+      special: Array.isArray(g.special) ? g.special : []
+    })).filter(g => g.name && g.resolvedUrl);
+    try {
+      localStorage.setItem('uraniumGamesCache', JSON.stringify(allGames));
+    } catch (_) {}
+    const uCount = allGames.filter(g => g.source === 'uranium').length;
+    const gCount = allGames.filter(g => g.source === 'gnmath').length;
+    statusLine.textContent = settings.stealth
+      ? `${allGames.length} resources ready`
+      : `${allGames.length} games ready · Uranium ${uCount} · GN Math ${gCount}`;
+    buildFilterBar();
+    handleSearch();
+  }
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(reader.result);
+      importDataFromObject(obj);
+      alert('Data imported successfully.');
+      closeSettings();
+    } catch (e) {
+      alert('Import failed: ' + (e.message || 'invalid JSON'));
+    }
+  };
+  reader.onerror = () => alert('Could not read file.');
+  reader.readAsText(file);
+}
+
+/* Open full site in about:blank */
+function openSiteInAboutBlank() {
+  // Clone current document HTML so the blank tab has the full launcher
+  let html = document.documentElement.outerHTML;
+  // Avoid nested script issues; write as-is
+  const win = window.open('about:blank', '_blank');
+  if (!win) {
+    alert('Popup blocked. Allow popups for this site.');
+    return;
+  }
+  try {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    try {
+      win.document.title = settings.stealth ? document.title : 'Uranium Games';
+    } catch (_) {}
+  } catch (e) {
+    console.warn(e);
+    alert('Could not write to about:blank window.');
+  }
+}
 
 /* ========== SETTINGS UI ========== */
 const panel   = document.getElementById('settingsPanel');
@@ -1104,6 +1323,7 @@ function openSettings() {
   document.getElementById('setClockFormat').value = settings.clockFormat;
   document.getElementById('setReducedMotion').checked = settings.reducedMotion;
   document.getElementById('setStealth').checked = settings.stealth;
+  document.getElementById('setOpenAboutBlank').checked = !!settings.openAboutBlank;
   applySettings();
   panel.classList.add('open');
   overlay.classList.add('show');
@@ -1129,12 +1349,23 @@ document.getElementById('setParticles').oninput = e => { settings.particles = +e
 document.getElementById('setClockFormat').onchange = e => { settings.clockFormat = e.target.value; updateClock(); };
 document.getElementById('setReducedMotion').onchange = e => { settings.reducedMotion = e.target.checked; applySettings(); };
 document.getElementById('setStealth').onchange = e => { settings.stealth = e.target.checked; applySettings(); };
+document.getElementById('setOpenAboutBlank').onchange = e => { settings.openAboutBlank = e.target.checked; saveSettings(); };
 
 document.getElementById('resetSettings').onclick = () => {
   settings = { ...DEFAULTS };
   applySettings();
   openSettings();
 };
+
+document.getElementById('exportDataBtn').onclick = exportData;
+document.getElementById('downloadDataBtn').onclick = downloadData;
+document.getElementById('importDataBtn').onclick = () => document.getElementById('importDataFile').click();
+document.getElementById('importDataFile').onchange = e => {
+  const file = e.target.files && e.target.files[0];
+  handleImportFile(file);
+  e.target.value = '';
+};
+document.getElementById('openSiteAboutBlank').onclick = openSiteInAboutBlank;
 
 searchInput.addEventListener('input', () => {
   clearTimeout(window._searchTimer);
