@@ -454,17 +454,10 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
           <p>Chat with AI • Free</p>
         </div>
       </div>
-      <div class="app-card" onclick="openApp('Cinera', 'https://cinera.cc/')">
+      <div class="app-card" onclick="openApp('Movies', 'https://cinera.cc/')">
         <div class="app-icon">🎬</div>
         <div class="app-info">
-          <h3>Cinera</h3>
-          <p>Watch Movies • Free</p>
-        </div>
-      </div>
-      <div class="app-card" onclick="openApp('DriveFlix', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/netfolixa.html')">
-        <div class="app-icon">🎬</div>
-        <div class="app-info">
-          <h3>DriveFlix (Old)</h3>
+          <h3>Movies</h3>
           <p>Watch Movies • Free</p>
         </div>
       </div>
@@ -492,6 +485,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 <div id="gameModal">
   <div class="modal-hover-zone" id="modalHoverZone" aria-hidden="true"></div>
   <div class="modal-controls" id="modalControls">
+    <button class="modal-btn" id="oldMoviesBtn" style="display:none;" onclick="openApp('DriveFlix Old', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/netfolixa.html')">Old Movies</button>
     <button class="modal-btn" id="fullscreenBtn">⛶ Fullscreen</button>
     <button class="modal-btn" id="closeBtn">Close ✕</button>
   </div>
@@ -541,6 +535,18 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
       Pressing the <strong>`</strong> (backtick / tilde) key instantly redirects your page to this site.
     </p>
+  </div>
+
+  <!-- ABOUT:BLANK MODES -->
+  <div class="settings-group">
+    <label class="settings-row">
+      <span>Open games in about:blank</span>
+      <input type="checkbox" id="setOpenAboutBlank">
+    </label>
+    <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
+      When enabled, games and apps launch in a new unblocked about:blank tab.
+    </p>
+    <button type="button" class="data-btn" id="openSiteAboutBlankSettings" style="width:100%;margin-top:10px;">Launch Site in about:blank</button>
   </div>
 
   <div class="settings-group">
@@ -630,6 +636,7 @@ const DEFAULTS = {
   clockFormat: '12',
   reducedMotion: false,
   stealth: false,
+  openAboutBlank: false,
   wallpaper: 'none',
   panicUrl: 'https://www.google.com'
 };
@@ -1120,20 +1127,94 @@ function confirmLeaveProgress(actionLabel) {
   );
 }
 
+function openInAboutBlankWindow(title, htmlOrUrl, isHtml) {
+  const win = window.open('about:blank', '_blank');
+  if (!win) {
+    alert('Popup blocked. Allow popups for this site to open in about:blank.');
+    return null;
+  }
+  try {
+    win.document.open();
+    if (isHtml) {
+      win.document.write(htmlOrUrl);
+    } else {
+      win.document.write(
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
+        (title || 'Game').replace(/</g, '&lt;') +
+        '</title></head><body style="margin:0;background:#000;"><iframe src="' +
+        String(htmlOrUrl).replace(/"/g, '&quot;') +
+        '" style="border:0;width:100vw;height:100vh;" allowfullscreen></iframe></body></html>'
+      );
+    }
+    win.document.close();
+    try { win.document.title = title || 'Game'; } catch (_) {}
+  } catch (e) {
+    console.warn('about:blank write failed', e);
+    try { win.location = typeof htmlOrUrl === 'string' && !isHtml ? htmlOrUrl : 'about:blank'; } catch (_) {}
+  }
+  return win;
+}
+
+function fetchHtmlForAboutBlank(url) {
+  const cacheBuster = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+  return fetch(cacheBuster)
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP_' + res.status);
+      return res.text();
+    })
+    .then(html => {
+      if (html.length < 50) throw new Error('EMPTY');
+      const safety = getCloakingScript();
+      return html.toLowerCase().includes('<head>')
+        ? html.replace(/<head>/i, '<head>' + safety)
+        : safety + html;
+    });
+}
+
 function openGame(game) {
   if (!confirmLeaveProgress('switch games')) return;
-  openInModal(game.name, game.resolvedUrl);
+  if (settings.openAboutBlank) {
+    openGameInAboutBlank(game.name, game.resolvedUrl);
+  } else {
+    openInModal(game.name, game.resolvedUrl);
+  }
 }
 
 function openApp(name, url) {
   if (!confirmLeaveProgress('open another app')) return;
-  openInModal(name, url);
+  if (settings.openAboutBlank) {
+    openGameInAboutBlank(name, url);
+  } else {
+    openInModal(name, url);
+  }
+}
+
+function openGameInAboutBlank(name, url) {
+  if (!url) return;
+  activeSessionName = name || 'this session';
+  activeSessionUrl = url;
+  fetchHtmlForAboutBlank(url)
+    .then(html => {
+      openInAboutBlankWindow(name, html, true);
+    })
+    .catch(err => {
+      console.warn('Fetch failed, opening URL in about:blank iframe:', err.message);
+      openInAboutBlankWindow(name, url, false);
+    });
 }
 
 function openInModal(name, url) {
   if (!url) return;
   activeSessionName = name || 'this session';
   activeSessionUrl = url;
+  
+  const oldMoviesBtn = document.getElementById('oldMoviesBtn');
+  if (name && name.toLowerCase().includes('movie')) {
+    oldMoviesBtn.style.display = 'inline-block';
+  } else {
+    oldMoviesBtn.style.display = 'none';
+  }
+
   gameFrame.src = 'about:blank';
   hideModalError();
   gameModal.style.display = 'flex';
@@ -1323,6 +1404,26 @@ function handleImportFile(file) {
   reader.readAsText(file);
 }
 
+function openSiteInAboutBlank() {
+  let html = document.documentElement.outerHTML;
+  const win = window.open('about:blank', '_blank');
+  if (!win) {
+    alert('Popup blocked. Allow popups for this site.');
+    return;
+  }
+  try {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    try {
+      win.document.title = settings.stealth ? document.title : 'Uranium Games';
+    } catch (_) {}
+  } catch (e) {
+    console.warn(e);
+    alert('Could not write to about:blank window.');
+  }
+}
+
 /* ========== SETTINGS UI ========== */
 const panel   = document.getElementById('settingsPanel');
 const overlay = document.getElementById('settingsOverlay');
@@ -1339,6 +1440,7 @@ function openSettings() {
   document.getElementById('setClockFormat').value = settings.clockFormat;
   document.getElementById('setReducedMotion').checked = settings.reducedMotion;
   document.getElementById('setStealth').checked = settings.stealth;
+  document.getElementById('setOpenAboutBlank').checked = !!settings.openAboutBlank;
   document.getElementById('setWallpaper').value = settings.wallpaper || 'none';
   document.getElementById('setPanicUrl').value = settings.panicUrl || 'https://www.google.com';
   applySettings();
@@ -1366,6 +1468,7 @@ document.getElementById('setParticles').oninput = e => { settings.particles = +e
 document.getElementById('setClockFormat').onchange = e => { settings.clockFormat = e.target.value; updateClock(); };
 document.getElementById('setReducedMotion').onchange = e => { settings.reducedMotion = e.target.checked; applySettings(); };
 document.getElementById('setStealth').onchange = e => { settings.stealth = e.target.checked; applySettings(); };
+document.getElementById('setOpenAboutBlank').onchange = e => { settings.openAboutBlank = e.target.checked; saveSettings(); };
 document.getElementById('setWallpaper').onchange = e => { settings.wallpaper = e.target.value; applySettings(); saveSettings(); };
 document.getElementById('setPanicUrl').oninput = e => { settings.panicUrl = e.target.value; saveSettings(); };
 
@@ -1383,6 +1486,7 @@ document.getElementById('importDataFile').onchange = e => {
   handleImportFile(file);
   e.target.value = '';
 };
+document.getElementById('openSiteAboutBlankSettings').onclick = openSiteInAboutBlank;
 
 /* ========== PANIC KEY EVENT LISTENER ========== */
 document.addEventListener('keydown', e => {
