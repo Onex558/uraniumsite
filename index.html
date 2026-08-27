@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,6 +16,9 @@
   --card-radius: 18px;
   --font-scale: 1;
   --anim-strength: 1;
+  --wallpaper-overlay: radial-gradient(circle at 20% 50%,rgba(var(--primary-rgb),0.12) 0%,transparent 50%),
+    radial-gradient(circle at 80% 80%,rgba(var(--primary-rgb),0.10) 0%,transparent 50%),
+    radial-gradient(circle at 40% 20%,rgba(var(--primary-rgb),0.06) 0%,transparent 40%);
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -30,14 +30,15 @@ body{
   overflow-x:hidden;
   position:relative;
   font-size:calc(16px * var(--font-scale));
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  transition: background 0.3s ease;
 }
 body::before{
   content:'';
   position:fixed;inset:0;
-  background:
-    radial-gradient(circle at 20% 50%,rgba(var(--primary-rgb),0.12) 0%,transparent 50%),
-    radial-gradient(circle at 80% 80%,rgba(var(--primary-rgb),0.10) 0%,transparent 50%),
-    radial-gradient(circle at 40% 20%,rgba(var(--primary-rgb),0.06) 0%,transparent 40%);
+  background: var(--wallpaper-overlay);
   pointer-events:none;z-index:0;
 }
 
@@ -156,14 +157,14 @@ h1{
   display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
   margin:0 0 22px;align-items:center;
 }
-.about-blank-btn,.data-btn{
+.data-btn{
   background:rgba(10,20,30,0.9);
   border:2px solid rgba(var(--primary-rgb),0.28);
   color:rgba(var(--primary-rgb),0.75);
   padding:9px 18px;border-radius:30px;font-size:0.88em;font-weight:600;
   letter-spacing:0.8px;cursor:pointer;transition:all 0.22s ease;
 }
-.about-blank-btn:hover,.data-btn:hover{
+.data-btn:hover{
   border-color:var(--primary);color:var(--primary);
   box-shadow:0 0 14px rgba(var(--primary-rgb),0.28);
 }
@@ -266,7 +267,7 @@ h1{
 #gameFrame{display:block;width:92vw;height:86vh;max-width:1400px;max-height:900px;border:3px solid var(--primary);border-radius:16px;box-shadow:0 0 30px rgba(var(--primary-rgb),0.55);background:#000;}
 #gameModal:fullscreen{background:#000;}
 #gameModal:fullscreen #gameFrame{width:100vw;height:100vh;max-width:none;max-height:none;border:none;border-radius:0;box-shadow:none;}
-/* Invisible top strip — move mouse here to reveal controls */
+
 .modal-hover-zone {
   position: absolute;
   top: 0;
@@ -334,11 +335,12 @@ h1{
 .settings-panel h2{color:var(--primary);margin-bottom:22px;font-size:1.4em;letter-spacing:1px;}
 .settings-group{margin-bottom:20px;}
 .settings-group label{display:block;font-size:0.84em;color:rgba(var(--primary-rgb),0.75);margin-bottom:7px;letter-spacing:0.5px;}
+.settings-group input[type="text"],
 .settings-group input[type="color"],
 .settings-group input[type="range"],
 .settings-group select{
-  width:100%;padding:9px;border-radius:10px;border:1px solid rgba(var(--primary-rgb),0.3);
-  background:rgba(0,0,0,0.35);color:#fff;
+  width:100%;padding:9px 12px;border-radius:10px;border:1px solid rgba(var(--primary-rgb),0.3);
+  background:rgba(0,0,0,0.35);color:#fff;font-size:0.9em;
 }
 .settings-group input[type="range"]{padding:0;accent-color:var(--primary);}
 .settings-row{display:flex;justify-content:space-between;align-items:center;gap:12px;}
@@ -434,7 +436,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <p class="status-line" id="statusLine">Loading…</p>
   </header>
 
-  <!-- ===== APPS SECTION ===== -->  <!-- ===== APPS SECTION ===== -->
+  <!-- ===== APPS SECTION ===== -->
   <div class="apps-section">
     <div class="section-title">📱 Apps</div>
     <div class="apps-grid">
@@ -452,10 +454,17 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
           <p>Chat with AI • Free</p>
         </div>
       </div>
+      <div class="app-card" onclick="openApp('Cinera', 'https://cinera.cc/')">
+        <div class="app-icon">🎬</div>
+        <div class="app-info">
+          <h3>Cinera</h3>
+          <p>Watch Movies • Free</p>
+        </div>
+      </div>
       <div class="app-card" onclick="openApp('DriveFlix', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/netfolixa.html')">
         <div class="app-icon">🎬</div>
         <div class="app-info">
-          <h3>DriveFlix</h3>
+          <h3>DriveFlix (Old)</h3>
           <p>Watch Movies • Free</p>
         </div>
       </div>
@@ -466,8 +475,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
     </div>
-    <button class="about-blank-btn" id="openSiteAboutBlank" title="Open this entire site in a blank tab (no URL)">📄 Open Site in about:blank</button>
-    <button class="settings-btn" id="openSettings">⚙️ Settings</button>
+    <button class="settings-btn" id="openSettings">Settings</button>
   </div>
 
   <div class="filter-bar" id="filterBar"></div>
@@ -484,7 +492,6 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 <div id="gameModal">
   <div class="modal-hover-zone" id="modalHoverZone" aria-hidden="true"></div>
   <div class="modal-controls" id="modalControls">
-    <button class="modal-btn" id="aboutBlankGameBtn" title="Open current game in about:blank">📄 about:blank</button>
     <button class="modal-btn" id="fullscreenBtn">⛶ Fullscreen</button>
     <button class="modal-btn" id="closeBtn">Close ✕</button>
   </div>
@@ -512,14 +519,36 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 
 <div class="overlay" id="settingsOverlay"></div>
 <aside class="settings-panel" id="settingsPanel">
-  <h2>⚙️ Settings</h2>
+  <h2>Settings</h2>
+
+  <!-- WALLPAPER SELECTION -->
+  <div class="settings-group">
+    <label>Wallpaper Preset</label>
+    <select id="setWallpaper">
+      <option value="none">Default Radial Theme</option>
+      <option value="neon-mesh">Neon Mesh</option>
+      <option value="cosmos">Deep Cosmos</option>
+      <option value="cyber">Cyber Matrix</option>
+      <option value="synthwave">Synthwave Sunset</option>
+      <option value="minimal-dark">Dark Minimalist</option>
+    </select>
+  </div>
+
+  <!-- PANIC KEY FEATURE -->
+  <div class="settings-group">
+    <label>Panic Key Target URL</label>
+    <input type="text" id="setPanicUrl" placeholder="https://www.google.com" value="https://www.google.com">
+    <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
+      Pressing the <strong>`</strong> (backtick / tilde) key instantly redirects your page to this site.
+    </p>
+  </div>
 
   <div class="settings-group">
     <label>Primary Color</label>
     <input type="color" id="setPrimary" value="#00ff88">
   </div>
   <div class="settings-group">
-    <label>Background</label>
+    <label>Background Color</label>
     <input type="color" id="setBg" value="#0a0e1a">
   </div>
   <div class="settings-group">
@@ -561,32 +590,23 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   </div>
   <div class="settings-group">
     <label class="settings-row">
-      <span>🛡️ Stealth Mode (Tab Cloaking)</span>
+      <span>Stealth Mode (Tab Cloaking)</span>
       <input type="checkbox" id="setStealth">
     </label>
     <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
       Changes the browser tab name + favicon to look like Google Slides, Docs, Drive, Classroom, etc.
     </p>
   </div>
-  <div class="settings-group">
-    <label class="settings-row">
-      <span>📄 Open games in about:blank</span>
-      <input type="checkbox" id="setOpenAboutBlank">
-    </label>
-    <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
-      When enabled, games and apps open in a new about:blank window instead of the modal.
-    </p>
-  </div>
 
   <div class="settings-group">
-    <label>📦 Data</label>
+    <label>Data</label>
     <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-bottom:10px;line-height:1.45;">
       Export settings + games list as JSON. Download to back up, or import to restore.
     </p>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <button type="button" class="data-btn" id="exportDataBtn" style="width:100%;">📤 Export Data</button>
-      <button type="button" class="data-btn" id="downloadDataBtn" style="width:100%;">⬇️ Download Data</button>
-      <button type="button" class="data-btn" id="importDataBtn" style="width:100%;">📥 Import Data</button>
+      <button type="button" class="data-btn" id="exportDataBtn" style="width:100%;">Export Data</button>
+      <button type="button" class="data-btn" id="downloadDataBtn" style="width:100%;">Download Data</button>
+      <button type="button" class="data-btn" id="importDataBtn" style="width:100%;">Import Data</button>
       <input type="file" id="importDataFile" accept=".json,application/json" style="display:none;">
     </div>
   </div>
@@ -610,7 +630,17 @@ const DEFAULTS = {
   clockFormat: '12',
   reducedMotion: false,
   stealth: false,
-  openAboutBlank: false
+  wallpaper: 'none',
+  panicUrl: 'https://www.google.com'
+};
+
+const WALLPAPERS = {
+  'none': '',
+  'neon-mesh': 'radial-gradient(at 0% 0%, hsla(160,100%,30%,0.2) 0px, transparent 50%), radial-gradient(at 100% 100%, hsla(240,100%,25%,0.3) 0px, transparent 50%), radial-gradient(at 50% 50%, hsla(180,100%,15%,0.2) 0px, transparent 50%)',
+  'cosmos': 'radial-gradient(circle at 50% 30%, rgba(80,0,120,0.35), transparent 70%), radial-gradient(circle at 20% 80%, rgba(0,40,100,0.4), transparent 60%)',
+  'cyber': 'linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px)',
+  'synthwave': 'linear-gradient(to bottom, #10002b 0%, #240046 40%, #5a189a 70%, #ff6b6b 100%)',
+  'minimal-dark': 'radial-gradient(circle, #151d2a 0%, #05080f 100%)'
 };
 
 let settings = loadSettings();
@@ -770,7 +800,7 @@ const customGames = [
   { name:"Moto x3m", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(55).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/motox3m.html" },
   { name:"Moto x3m 2", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(56).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clmotox3m2.html" },
   { name:"Moto x3m Winter", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/moto-x3m-4-winter-logo.jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/motox3mwinter.html" },
-    { name:"Google Dino Game", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/unnamed%20(1).png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clgoogledino.html" },
+  { name:"Google Dino Game", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/unnamed%20(1).png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clgoogledino.html" },
   { name:"Pac Man", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(2).png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/pacman.html" },
   { name:"Parking fury", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(57).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/parkingfury.html" },
   { name:"Fruit Ninja", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(58).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/offline/fruitninja.html" },
@@ -852,7 +882,16 @@ function applySettings() {
   root.style.setProperty('--card-min', settings.card + 'px');
   root.style.setProperty('--font-scale', settings.font / 100);
   root.style.setProperty('--anim-strength', settings.anim / 100);
-  document.body.style.background = settings.bg;
+  
+  // Wallpaper background check
+  const selectedWallpaper = settings.wallpaper && WALLPAPERS[settings.wallpaper] ? WALLPAPERS[settings.wallpaper] : '';
+  if (selectedWallpaper) {
+    document.body.style.backgroundImage = selectedWallpaper;
+  } else {
+    document.body.style.backgroundImage = 'none';
+  }
+
+  document.body.style.backgroundColor = settings.bg;
   document.body.classList.toggle('reduced-motion', settings.reducedMotion);
   buildParticles(settings.particles);
   applyCloaking();
@@ -975,7 +1014,7 @@ async function fetchGnMathSource(src) {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
     return data
-      .filter(g => g && g.name && g.url && g.id !== -1) // skip discord promo
+      .filter(g => g && g.name && g.url && g.id !== -1)
       .map(g => {
         let resolvedUrl = String(g.url)
           .replace(/\{HTML_URL\}/g, src.html)
@@ -983,7 +1022,6 @@ async function fetchGnMathSource(src) {
         let resolvedCover = String(g.cover || '')
           .replace(/\{COVER_URL\}/g, src.cover)
           .replace(/\{HTML_URL\}/g, src.html);
-        // External links (e.g. discord already filtered) keep as-is
         if (resolvedUrl.startsWith('{')) resolvedUrl = g.url;
         if (resolvedCover.startsWith('{') || !resolvedCover) {
           resolvedCover = '';
@@ -1007,14 +1045,12 @@ async function fetchGnMathSource(src) {
 
 async function loadAllSources() {
   statusLine.textContent = 'Loading games…';
-  // Tag built-in games
   const uraniumGames = customGames.map(g => ({
     ...g,
     source: 'uranium',
     special: g.special || []
   }));
 
-  // Fetch external JSON sources in parallel
   const externalLists = await Promise.all(
     externalSources.map(src => fetchGnMathSource(src))
   );
@@ -1022,7 +1058,6 @@ async function loadAllSources() {
 
   allGames = [...uraniumGames, ...gnGames];
 
-  // Dedupe by name + url
   const unique = [];
   const seen = new Set();
   for (const item of allGames) {
@@ -1085,81 +1120,14 @@ function confirmLeaveProgress(actionLabel) {
   );
 }
 
-function openInAboutBlankWindow(title, htmlOrUrl, isHtml) {
-  const win = window.open('about:blank', '_blank');
-  if (!win) {
-    alert('Popup blocked. Allow popups for this site to open in about:blank.');
-    return null;
-  }
-  try {
-    win.document.open();
-    if (isHtml) {
-      win.document.write(htmlOrUrl);
-    } else {
-      // Redirect-style: meta refresh or location
-      win.document.write(
-        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' +
-        (title || 'Game').replace(/</g, '&lt;') +
-        '</title></head><body style="margin:0;background:#000;"><iframe src="' +
-        String(htmlOrUrl).replace(/"/g, '&quot;') +
-        '" style="border:0;width:100vw;height:100vh;" allowfullscreen></iframe></body></html>'
-      );
-    }
-    win.document.close();
-    try { win.document.title = title || 'Game'; } catch (_) {}
-  } catch (e) {
-    console.warn('about:blank write failed', e);
-    try { win.location = typeof htmlOrUrl === 'string' && !isHtml ? htmlOrUrl : 'about:blank'; } catch (_) {}
-  }
-  return win;
-}
-
-function fetchHtmlForAboutBlank(url) {
-  const cacheBuster = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
-  return fetch(cacheBuster)
-    .then(res => {
-      if (!res.ok) throw new Error('HTTP_' + res.status);
-      return res.text();
-    })
-    .then(html => {
-      if (html.length < 50) throw new Error('EMPTY');
-      const safety = getCloakingScript();
-      return html.toLowerCase().includes('<head>')
-        ? html.replace(/<head>/i, '<head>' + safety)
-        : safety + html;
-    });
-}
-
 function openGame(game) {
   if (!confirmLeaveProgress('switch games')) return;
-  if (settings.openAboutBlank) {
-    openGameInAboutBlank(game.name, game.resolvedUrl);
-  } else {
-    openInModal(game.name, game.resolvedUrl);
-  }
+  openInModal(game.name, game.resolvedUrl);
 }
 
 function openApp(name, url) {
   if (!confirmLeaveProgress('open another app')) return;
-  if (settings.openAboutBlank) {
-    openGameInAboutBlank(name, url);
-  } else {
-    openInModal(name, url);
-  }
-}
-
-function openGameInAboutBlank(name, url) {
-  if (!url) return;
-  activeSessionName = name || 'this session';
-  activeSessionUrl = url;
-  fetchHtmlForAboutBlank(url)
-    .then(html => {
-      openInAboutBlankWindow(name, html, true);
-    })
-    .catch(err => {
-      console.warn('Fetch failed, opening URL in about:blank iframe:', err.message);
-      openInAboutBlankWindow(name, url, false);
-    });
+  openInModal(name, url);
 }
 
 function openInModal(name, url) {
@@ -1172,7 +1140,6 @@ function openInModal(name, url) {
   document.body.style.overflow = 'hidden';
   gameModal.classList.add('open');
   resetModalChrome();
-  // Brief flash of controls so user knows they're there, then hide
   showModalChrome();
   clearTimeout(modalChromeHideTimer);
   modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
@@ -1216,7 +1183,6 @@ function closeModal() {
   }
 }
 
-/* Fullscreen + about:blank from modal */
 document.getElementById('fullscreenBtn').onclick = () => {
   if (!document.fullscreenElement) {
     gameModal.requestFullscreen().catch(err => {
@@ -1227,16 +1193,6 @@ document.getElementById('fullscreenBtn').onclick = () => {
   }
 };
 
-document.getElementById('aboutBlankGameBtn').onclick = () => {
-  if (!activeSessionUrl) return;
-  const name = activeSessionName || 'Game';
-  const url = activeSessionUrl;
-  fetchHtmlForAboutBlank(url)
-    .then(html => openInAboutBlankWindow(name, html, true))
-    .catch(() => openInAboutBlankWindow(name, url, false));
-};
-
-/* Auto-hide modal chrome — show when cursor near top, slide away after */
 const modalControls = document.getElementById('modalControls');
 const modalHoverZone = document.getElementById('modalHoverZone');
 let modalChromeHideTimer = null;
@@ -1250,7 +1206,6 @@ function showModalChrome() {
 
 function hideModalChrome() {
   if (!modalControls) return;
-  // Keep visible while pointer is over the bar itself
   if (modalControls.matches(':hover') || (modalHoverZone && modalHoverZone.matches(':hover'))) {
     modalChromeHideTimer = setTimeout(hideModalChrome, 1200);
     return;
@@ -1276,13 +1231,11 @@ if (modalControls) {
     modalChromeHideTimer = setTimeout(hideModalChrome, 600);
   });
 }
-/* Also reveal if mouse hits top of the modal (including fullscreen) */
 gameModal.addEventListener('mousemove', (e) => {
   if (gameModal.style.display !== 'flex') return;
   const y = e.clientY;
   if (y <= 64) showModalChrome();
 });
-/* Touch: brief tap near top */
 gameModal.addEventListener('touchstart', (e) => {
   if (!e.touches || !e.touches[0]) return;
   if (e.touches[0].clientY <= 80) showModalChrome();
@@ -1321,7 +1274,6 @@ function exportData() {
 }
 
 function downloadData() {
-  // Same payload; alias for clarity / user request
   exportData();
 }
 
@@ -1371,29 +1323,6 @@ function handleImportFile(file) {
   reader.readAsText(file);
 }
 
-/* Open full site in about:blank */
-function openSiteInAboutBlank() {
-  // Clone current document HTML so the blank tab has the full launcher
-  let html = document.documentElement.outerHTML;
-  // Avoid nested script issues; write as-is
-  const win = window.open('about:blank', '_blank');
-  if (!win) {
-    alert('Popup blocked. Allow popups for this site.');
-    return;
-  }
-  try {
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    try {
-      win.document.title = settings.stealth ? document.title : 'Uranium Games';
-    } catch (_) {}
-  } catch (e) {
-    console.warn(e);
-    alert('Could not write to about:blank window.');
-  }
-}
-
 /* ========== SETTINGS UI ========== */
 const panel   = document.getElementById('settingsPanel');
 const overlay = document.getElementById('settingsOverlay');
@@ -1410,7 +1339,8 @@ function openSettings() {
   document.getElementById('setClockFormat').value = settings.clockFormat;
   document.getElementById('setReducedMotion').checked = settings.reducedMotion;
   document.getElementById('setStealth').checked = settings.stealth;
-  document.getElementById('setOpenAboutBlank').checked = !!settings.openAboutBlank;
+  document.getElementById('setWallpaper').value = settings.wallpaper || 'none';
+  document.getElementById('setPanicUrl').value = settings.panicUrl || 'https://www.google.com';
   applySettings();
   panel.classList.add('open');
   overlay.classList.add('show');
@@ -1436,7 +1366,8 @@ document.getElementById('setParticles').oninput = e => { settings.particles = +e
 document.getElementById('setClockFormat').onchange = e => { settings.clockFormat = e.target.value; updateClock(); };
 document.getElementById('setReducedMotion').onchange = e => { settings.reducedMotion = e.target.checked; applySettings(); };
 document.getElementById('setStealth').onchange = e => { settings.stealth = e.target.checked; applySettings(); };
-document.getElementById('setOpenAboutBlank').onchange = e => { settings.openAboutBlank = e.target.checked; saveSettings(); };
+document.getElementById('setWallpaper').onchange = e => { settings.wallpaper = e.target.value; applySettings(); saveSettings(); };
+document.getElementById('setPanicUrl').oninput = e => { settings.panicUrl = e.target.value; saveSettings(); };
 
 document.getElementById('resetSettings').onclick = () => {
   settings = { ...DEFAULTS };
@@ -1452,7 +1383,23 @@ document.getElementById('importDataFile').onchange = e => {
   handleImportFile(file);
   e.target.value = '';
 };
-document.getElementById('openSiteAboutBlank').onclick = openSiteInAboutBlank;
+
+/* ========== PANIC KEY EVENT LISTENER ========== */
+document.addEventListener('keydown', e => {
+  if (e.key === '`' || e.key === '~') {
+    e.preventDefault();
+    let url = settings.panicUrl || 'https://www.google.com';
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    window.location.href = url;
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (panel.classList.contains('open')) closeSettings();
+    else if (gameModal.style.display === 'flex') closeModal();
+  }
+});
 
 searchInput.addEventListener('input', () => {
   clearTimeout(window._searchTimer);
@@ -1460,16 +1407,11 @@ searchInput.addEventListener('input', () => {
 });
 
 document.getElementById('closeBtn').onclick = closeModal;
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    if (panel.classList.contains('open')) closeSettings();
-    else if (gameModal.style.display === 'flex') closeModal();
-  }
-});
 
 applySettings();
 updateClock();
 setInterval(updateClock, 1000);
+
 /* ===== FIRST-VISIT ANNOUNCEMENT ===== */
 function showAnnouncementIfNeeded() {
   try {
