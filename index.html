@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -95,62 +96,54 @@ h1{
 .clock-time{font-weight:700;font-size:1.15em;}
 .clock-date{font-size:0.72em;opacity:0.7;}
 
-/* ===== APPS SECTION ===== */
-.apps-section {
-  margin-bottom: 32px;
+/* ===== APPS BUTTON + DROPDOWN ===== */
+.apps-wrap {
+  position: relative;
 }
-.section-title {
-  font-size: 1.15em;
+.apps-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  background: rgba(8,14,22,0.97);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(var(--primary-rgb),0.35);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 20px rgba(var(--primary-rgb),0.2);
+  z-index: 100;
+}
+.apps-dropdown.open {
+  display: block;
+  animation: appsDropIn 0.2s ease-out;
+}
+@keyframes appsDropIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.apps-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
   color: var(--primary);
-  margin-bottom: 14px;
-  letter-spacing: 1px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.apps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 18px;
-}
-.app-card {
-  background: var(--card-bg);
-  backdrop-filter: blur(var(--blur));
-  border-radius: 16px;
-  border: 1px solid rgba(var(--primary-rgb), 0.35);
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  font-size: 0.95em;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 0 18px rgba(var(--primary-rgb), 0.15);
+  text-align: left;
+  transition: background 0.18s ease;
 }
-.app-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--primary);
-  box-shadow: 0 0 28px rgba(var(--primary-rgb), 0.35);
+.apps-dropdown button:hover {
+  background: rgba(var(--primary-rgb),0.15);
 }
-.app-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(var(--primary-rgb), 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6em;
-  flex-shrink: 0;
-}
-.app-info h3 {
-  font-size: 1.05em;
-  color: var(--primary);
-  margin-bottom: 3px;
-}
-.app-info p {
-  font-size: 0.78em;
-  color: rgba(var(--primary-rgb), 0.6);
+.apps-dropdown .app-emoji {
+  font-size: 1.25em;
 }
 
 .top-controls{
@@ -436,37 +429,23 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <p class="status-line" id="statusLine">Loading…</p>
   </header>
 
-  <!-- ===== APPS SECTION ===== -->
-  <div class="apps-section">
-    <div class="section-title">📱 Apps</div>
-    <div class="apps-grid">
-      <div class="app-card" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer')">
-        <div class="app-icon">💬</div>
-        <div class="app-info">
-          <h3>Discord</h3>
-          <p>Join the server • Free</p>
-        </div>
-      </div>
-      <div class="app-card" onclick="openApp('Uranium AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html')">
-        <div class="app-icon">🤖</div>
-        <div class="app-info">
-          <h3>Uranium AI</h3>
-          <p>Chat with AI • Free</p>
-        </div>
-      </div>
-      <div class="app-card" onclick="openApp('Movies', 'https://cinera.cc/')">
-        <div class="app-icon">🎬</div>
-        <div class="app-info">
-          <h3>Movies</h3>
-          <p>Watch Movies • Free</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="top-controls">
     <div class="search-bar">
       <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
+    </div>
+    <div class="apps-wrap">
+      <button class="settings-btn" id="appsBtn" type="button">📱 Apps</button>
+      <div class="apps-dropdown" id="appsDropdown">
+        <button type="button" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer'); closeAppsDropdown();">
+          <span class="app-emoji">💬</span> Discord
+        </button>
+        <button type="button" onclick="openApp('Uranium AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html'); closeAppsDropdown();">
+          <span class="app-emoji">🤖</span> Uranium AI
+        </button>
+        <button type="button" onclick="openApp('Movies', 'https://cinera.cc/'); closeAppsDropdown();">
+          <span class="app-emoji">🎬</span> Movies
+        </button>
+      </div>
     </div>
     <button class="settings-btn" id="openSettings">Settings</button>
   </div>
@@ -502,7 +481,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   <div class="announce-box">
     <div class="announce-icon">☢️</div>
     <h2 id="announceTitle">Welcome to Uranium</h2>
-    <p>Play hundreds of games instantly. Use <strong>Apps</strong> for Discord, AI, and movies.</p>
+    <p>Play hundreds of games instantly. Use the <strong>Apps</strong> button for Discord, AI, and movies.</p>
     <p class="announce-note">Tip: closing a game may lose your progress — save if you can.</p>
     <div class="announce-actions">
       <button type="button" class="announce-discord" id="announceDiscord">Join Discord</button>
@@ -1457,6 +1436,24 @@ document.getElementById('openSettings').onclick = openSettings;
 document.getElementById('closeSettings').onclick = closeSettings;
 overlay.onclick = closeSettings;
 
+/* ========== APPS DROPDOWN ========== */
+const appsBtn = document.getElementById('appsBtn');
+const appsDropdown = document.getElementById('appsDropdown');
+function closeAppsDropdown() {
+  if (appsDropdown) appsDropdown.classList.remove('open');
+}
+if (appsBtn && appsDropdown) {
+  appsBtn.onclick = (e) => {
+    e.stopPropagation();
+    appsDropdown.classList.toggle('open');
+  };
+  document.addEventListener('click', (e) => {
+    if (!appsDropdown.contains(e.target) && e.target !== appsBtn) {
+      closeAppsDropdown();
+    }
+  });
+}
+
 document.getElementById('setPrimary').oninput = e => { settings.primary = e.target.value; applySettings(); };
 document.getElementById('setBg').oninput = e => { settings.bg = e.target.value; applySettings(); };
 document.getElementById('setGlow').oninput = e => { settings.glow = +e.target.value; applySettings(); };
@@ -1500,7 +1497,8 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'Escape') {
-    if (panel.classList.contains('open')) closeSettings();
+    if (appsDropdown && appsDropdown.classList.contains('open')) closeAppsDropdown();
+    else if (panel.classList.contains('open')) closeSettings();
     else if (gameModal.style.display === 'flex') closeModal();
   }
 });
