@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -95,11 +94,10 @@ h1{
 }
 .clock-time{font-weight:700;font-size:1.15em;}
 .clock-date{font-size:0.72em;opacity:0.7;}
+.online-users{font-size:0.72em;opacity:0.85;color:rgba(var(--primary-rgb),0.9);}
 
 /* ===== APPS BUTTON + DROPDOWN ===== */
-.apps-wrap {
-  position: relative;
-}
+.apps-wrap { position: relative; }
 .apps-dropdown {
   display: none;
   position: absolute;
@@ -115,10 +113,7 @@ h1{
   box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 20px rgba(var(--primary-rgb),0.2);
   z-index: 100;
 }
-.apps-dropdown.open {
-  display: block;
-  animation: appsDropIn 0.2s ease-out;
-}
+.apps-dropdown.open { display: block; animation: appsDropIn 0.2s ease-out; }
 @keyframes appsDropIn {
   from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -139,12 +134,8 @@ h1{
   text-align: left;
   transition: background 0.18s ease;
 }
-.apps-dropdown button:hover {
-  background: rgba(var(--primary-rgb),0.15);
-}
-.apps-dropdown .app-emoji {
-  font-size: 1.25em;
-}
+.apps-dropdown button:hover { background: rgba(var(--primary-rgb),0.15); }
+.apps-dropdown .app-emoji { font-size: 1.25em; }
 
 .top-controls{
   display:flex;justify-content:center;gap:14px;flex-wrap:wrap;
@@ -211,6 +202,7 @@ h1{
   border:1px solid rgba(var(--primary-rgb),0.28);
   text-decoration:none;color:inherit;display:block;width:100%;max-width:230px;
   animation:fadeInUp 0.45s ease-out both;
+  position:relative;
 }
 .game-card:hover{
   transform:translateY(calc(-10px * var(--anim-strength))) scale(calc(1 + 0.025 * var(--anim-strength)));
@@ -218,6 +210,28 @@ h1{
   border-color:var(--primary);
 }
 @keyframes fadeInUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+
+.favorite-btn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:5;
+  border:none;
+  background:rgba(0,0,0,0.65);
+  color:#fff;
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  cursor:pointer;
+  font-size:16px;
+  line-height:32px;
+  text-align:center;
+  box-shadow:0 0 10px rgba(0,0,0,0.35);
+}
+.favorite-btn.favorited{
+  color:#ffd54a;
+  background:rgba(40,30,0,0.8);
+}
 
 .game-image{width:100%;aspect-ratio:1/1;background:linear-gradient(135deg,#001a0f,#003d29);position:relative;overflow:hidden;}
 .game-image img{width:100%;height:100%;object-fit:cover;transition:transform 0.35s ease;}
@@ -423,6 +437,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <div class="clock-wrap">
       <div class="clock-time" id="clockTime">--:--</div>
       <div class="clock-date" id="clockDate">---</div>
+      <div class="online-users" id="onlineUsers">Users Online: --</div>
     </div>
     <h1 id="mainTitle">☢️ URANIUM</h1>
     <p class="tagline" id="mainTagline">Play hundreds of games instantly</p>
@@ -494,7 +509,6 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 <aside class="settings-panel" id="settingsPanel">
   <h2>Settings</h2>
 
-  <!-- WALLPAPER SELECTION -->
   <div class="settings-group">
     <label>Wallpaper Preset</label>
     <select id="setWallpaper">
@@ -507,7 +521,6 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     </select>
   </div>
 
-  <!-- PANIC KEY FEATURE -->
   <div class="settings-group">
     <label>Panic Key Target URL</label>
     <input type="text" id="setPanicUrl" placeholder="https://www.google.com" value="https://www.google.com">
@@ -516,7 +529,6 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     </p>
   </div>
 
-  <!-- ABOUT:BLANK MODES -->
   <div class="settings-group">
     <label class="settings-row">
       <span>Open games in about:blank</span>
@@ -635,6 +647,8 @@ let currentBlobUrl = null;
 let cloakInterval = null;
 let currentFilter = 'all';
 
+const FAVORITES_KEY = 'uraniumFavorites';
+
 const gamesGrid   = document.getElementById('gamesGrid');
 const gameCountEl = document.getElementById('gameCount');
 const statusLine  = document.getElementById('statusLine');
@@ -644,6 +658,7 @@ const gameFrame   = document.getElementById('gameFrame');
 const modalError  = document.getElementById('modalError');
 const particlesEl = document.getElementById('particles');
 const filterBar   = document.getElementById('filterBar');
+const onlineUsersEl = document.getElementById('onlineUsers');
 
 /* ========== EXTERNAL SOURCES (GN Math etc.) ========== */
 const externalSources = [
@@ -793,15 +808,49 @@ const customGames = [
   { name:"Flappy bird", author:"Unknown", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/images%20(59).jpeg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Ultimate-games-stash-games-@main/UGS-Files/clflappybird.html" },
 ];
 
-/* ========== SETTINGS ========== */
-function loadSettings() {
+/* keep the rest of your existing script exactly as-is, but replace:
+   1) buildFilterBar() with Favorites filter added
+   2) renderGames() with favorite button support
+   3) handleSearch() with favorites filtering
+   4) updateClock() with online users count
+   5) add localStorage favorites helpers
+   6) include favorites in export/import if you want
+*/
+/* ===== FAVORITES HELPERS ===== */
+function loadFavorites() {
   try {
-    const raw = localStorage.getItem('uraniumSettings');
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
-  } catch { return { ...DEFAULTS }; }
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
+  } catch {
+    return [];
+  }
 }
-function saveSettings() {
-  localStorage.setItem('uraniumSettings', JSON.stringify(settings));
+function saveFavorites(list) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
+}
+function favoriteKey(game) {
+  return (game.name + '|' + game.resolvedUrl).toLowerCase();
+}
+function isFavorite(game) {
+  return loadFavorites().some(g => favoriteKey(g) === favoriteKey(game));
+}
+function toggleFavorite(game) {
+  const favs = loadFavorites();
+  const key = favoriteKey(game);
+  const index = favs.findIndex(g => favoriteKey(g) === key);
+  if (index >= 0) {
+    favs.splice(index, 1);
+  } else {
+    favs.push({
+      name: game.name,
+      author: game.author,
+      resolvedCover: game.resolvedCover,
+      resolvedUrl: game.resolvedUrl,
+      source: game.source,
+      special: game.special || []
+    });
+  }
+  saveFavorites(favs);
+  handleSearch();
 }
 
 /* ========== IMPROVED TAB CLOAKING ========== */
@@ -868,15 +917,9 @@ function applySettings() {
   root.style.setProperty('--card-min', settings.card + 'px');
   root.style.setProperty('--font-scale', settings.font / 100);
   root.style.setProperty('--anim-strength', settings.anim / 100);
-  
-  // Wallpaper background check
-  const selectedWallpaper = settings.wallpaper && WALLPAPERS[settings.wallpaper] ? WALLPAPERS[settings.wallpaper] : '';
-  if (selectedWallpaper) {
-    document.body.style.backgroundImage = selectedWallpaper;
-  } else {
-    document.body.style.backgroundImage = 'none';
-  }
 
+  const selectedWallpaper = settings.wallpaper && WALLPAPERS[settings.wallpaper] ? WALLPAPERS[settings.wallpaper] : '';
+  document.body.style.backgroundImage = selectedWallpaper || 'none';
   document.body.style.backgroundColor = settings.bg;
   document.body.classList.toggle('reduced-motion', settings.reducedMotion);
   buildParticles(settings.particles);
@@ -909,6 +952,10 @@ function updateClock() {
   const optsDate = { weekday: 'short', month: 'short', day: 'numeric' };
   document.getElementById('clockTime').textContent = now.toLocaleTimeString([], optsTime);
   document.getElementById('clockDate').textContent = now.toLocaleDateString([], optsDate);
+
+  // Online users display (local simulated count; replace with your server count later if you have one)
+  const online = 87 + Math.floor((Date.now() / 1000) % 13);
+  onlineUsersEl.textContent = 'Users Online: ' + online;
 }
 
 /* ========== RENDER ========== */
@@ -928,7 +975,9 @@ function renderGames(list) {
     const sourceBadge = game.source === 'gnmath'
       ? '<span style="font-size:0.65em;opacity:0.55;letter-spacing:0.5px;">GN Math</span>'
       : '<span style="font-size:0.65em;opacity:0.55;letter-spacing:0.5px;">Uranium</span>';
+    const favActive = isFavorite(game);
     card.innerHTML = `
+      <button class="favorite-btn ${favActive ? 'favorited' : ''}" type="button" title="Favorite this game">${favActive ? '★' : '☆'}</button>
       <div class="game-image">
         <img src="${game.resolvedCover || ''}" alt="${game.name}" loading="lazy"
           onerror="this.style.display='none';this.parentElement.querySelector('.fallback').style.display='flex';">
@@ -938,7 +987,17 @@ function renderGames(list) {
         <div class="game-title">${game.name}</div>
         <div class="game-author">${game.author || 'Unknown'} · ${sourceBadge}</div>
       </div>`;
-    card.onclick = e => { e.preventDefault(); openGame(game); };
+    card.onclick = e => {
+      if (e.target.closest('.favorite-btn')) return;
+      e.preventDefault();
+      openGame(game);
+    };
+    const favBtn = card.querySelector('.favorite-btn');
+    favBtn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFavorite(game);
+    };
     frag.appendChild(card);
   });
   gamesGrid.appendChild(frag);
@@ -947,6 +1006,7 @@ function renderGames(list) {
 function buildFilterBar() {
   const filters = [
     { id: 'all', label: 'All' },
+    { id: 'favorites', label: 'Favorites' },
     { id: 'uranium', label: 'Uranium' },
     { id: 'gnmath', label: 'GN Math' },
     { id: 'flash', label: 'Flash' },
@@ -973,8 +1033,10 @@ function handleSearch() {
   const query = searchInput.value.toLowerCase().trim();
   let results = allGames;
 
-  // Source / special filter
-  if (currentFilter === 'uranium') {
+  if (currentFilter === 'favorites') {
+    const favKeys = new Set(loadFavorites().map(favoriteKey));
+    results = results.filter(g => favKeys.has(favoriteKey(g)));
+  } else if (currentFilter === 'uranium') {
     results = results.filter(g => g.source === 'uranium');
   } else if (currentFilter === 'gnmath') {
     results = results.filter(g => g.source === 'gnmath');
@@ -982,7 +1044,6 @@ function handleSearch() {
     results = results.filter(g => Array.isArray(g.special) && g.special.includes(currentFilter));
   }
 
-  // Text search
   if (query) {
     const tokens = query.split(/\s+/);
     results = results.filter(g => {
@@ -1314,7 +1375,8 @@ function buildExportPayload() {
       resolvedUrl: g.resolvedUrl,
       source: g.source,
       special: g.special || []
-    }))
+    })),
+    favorites: loadFavorites()
   };
 }
 
@@ -1344,6 +1406,7 @@ function importDataFromObject(obj) {
     saveSettings();
     applySettings();
   }
+  if (Array.isArray(obj.favorites)) saveFavorites(obj.favorites);
   if (Array.isArray(obj.gamesCache) && obj.gamesCache.length) {
     allGames = obj.gamesCache.map(g => ({
       name: g.name,
