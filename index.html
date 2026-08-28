@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Uranium Games</title>
-<link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢️</text></svg>">
+<link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>U</text></svg>">
 <style>
 :root {
   --primary: #00ff88;
@@ -60,7 +60,7 @@ header{
   animation:slideDown 0.55s ease-out, glowPulse 3.2s ease-in-out infinite;
 }
 header::before{
-  content:'☢️';
+  content:'';
   position:absolute;font-size:14em;opacity:0.04;
   top:50%;left:50%;transform:translate(-50%,-50%);
   animation:rotate 22s linear infinite;
@@ -174,18 +174,42 @@ h1{
   transform:scale(1.015);
 }
 
-/* Header stats next to clock */
-.header-stats{
-  display:flex;align-items:center;gap:6px;margin-top:4px;
-  font-size:0.72em;color:rgba(var(--primary-rgb),0.7);letter-spacing:0.3px;
+/* Level button next to clock */
+.level-btn{
+  margin-top:6px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  background:rgba(0,0,0,0.35);border:1px solid rgba(var(--primary-rgb),0.35);
+  color:var(--primary);padding:6px 12px;border-radius:10px;cursor:pointer;
+  font-size:0.78em;font-weight:700;letter-spacing:0.3px;transition:0.2s;
 }
-.header-stats .hstat strong{color:var(--primary);font-weight:700;}
-.hstat-sep{opacity:0.4;}
-.online-dot{
-  display:inline-block;width:7px;height:7px;border-radius:50%;
-  background:#22c55e;box-shadow:0 0 6px #22c55e;margin-right:2px;
-  vertical-align:middle;
+.level-btn:hover{border-color:var(--primary);box-shadow:0 0 12px rgba(var(--primary-rgb),0.3);}
+.level-btn strong{font-size:1.15em;}
+.level-btn-xp{font-size:0.85em;opacity:0.7;font-weight:600;}
+
+.level-overlay{
+  display:none;position:fixed;inset:0;z-index:15000;
+  background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:20px;
 }
+.level-overlay.show{display:flex;}
+.level-panel{
+  width:min(360px,94vw);background:rgba(8,14,22,0.97);
+  border:1px solid rgba(var(--primary-rgb),0.35);border-radius:18px;
+  padding:22px 22px 20px;box-shadow:0 16px 48px rgba(0,0,0,0.55);
+}
+.level-panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.level-panel-head h2{color:var(--primary);font-size:1.15em;margin:0;}
+.level-panel-close{
+  background:transparent;border:1px solid rgba(var(--primary-rgb),0.35);
+  color:var(--primary);padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:600;
+}
+.level-big{font-size:2em;font-weight:900;color:var(--primary);text-align:center;margin-bottom:14px;}
+.level-xp-row{margin-bottom:12px;}
+.level-xp-bar{height:10px;background:rgba(var(--primary-rgb),0.15);border-radius:6px;overflow:hidden;}
+.level-xp-fill{height:100%;width:0%;background:var(--primary);border-radius:6px;transition:width 0.35s ease;}
+.level-xp-label{text-align:center;font-size:0.85em;color:rgba(var(--primary-rgb),0.75);margin-top:6px;}
+.level-need{font-size:0.9em;color:rgba(255,255,255,0.7);line-height:1.45;margin-bottom:14px;text-align:center;}
+.level-stats{list-style:none;padding:0;margin:0;font-size:0.9em;color:rgba(255,255,255,0.75);}
+.level-stats li{padding:6px 0;border-top:1px solid rgba(var(--primary-rgb),0.12);}
+.level-stats strong{color:var(--primary);}
 
 /* Continue Playing */
 .continue-section{margin-bottom:22px;}
@@ -535,7 +559,7 @@ h1{
 .announce-actions .announce-discord:hover{filter:brightness(1.1);transform:scale(1.03);}
 
 /* Stealth visual */
-body.stealth header::before{content:'📊';}
+body.stealth header::before{content:'';}
 body.stealth h1{
   background:linear-gradient(90deg,#4285f4,#34a853,#fbbc05,#ea4335);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
@@ -551,89 +575,80 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 </style>
 </head>
 <body>
-<!-- IXL splash + fake loading -->
-<div id="ixlSplash">
-  <div class="ixl-topbar">
-    <div class="ixl-logo"><span>CL</span> ClassLink</div>
-    <div class="ixl-nav">
-      <span>My Apps</span>
-      <span>Classes</span>
-      <span>Library</span>
-      <span>Help</span>
-    </div>
-  </div>
-  <div class="ixl-hero" id="ixlHero">
-    <h1>One login. All your apps.</h1>
-    <p>Access Google, Canvas, and all your school resources in one place.</p>
-    <button type="button" class="ixl-cta" id="ixlEnterBtn">Launch My Apps</button>
-    <div class="ixl-skills">
-      <div class="ixl-skill"><span class="ixl-emoji">📘</span>Google</div>
-      <div class="ixl-skill"><span class="ixl-emoji">🎓</span>Canvas</div>
-      <div class="ixl-skill"><span class="ixl-emoji">📧</span>Email</div>
-      <div class="ixl-skill"><span class="ixl-emoji">📚</span>Library</div>
-    </div>
-  </div>
-  <div class="ixl-loading" id="ixlLoading" style="display:none;">
-    <div class="ixl-load-spinner"></div>
-    <div class="ixl-load-msg" id="ixlLoadMsg">Signing you in…</div>
-    <div class="ixl-load-sub">Please wait</div>
-  </div>
-  <div class="ixl-footer">© ClassLink · Privacy · Terms · Support</div>
-</div>
-
 <div class="floating-particles" id="particles"></div>
 <div id="achToast" role="status" aria-live="polite"></div>
+
+<!-- Level panel -->
+<div id="levelOverlay" class="level-overlay" aria-hidden="true">
+  <div class="level-panel" role="dialog" aria-labelledby="levelPanelTitle">
+    <div class="level-panel-head">
+      <h2 id="levelPanelTitle">Your Level</h2>
+      <button type="button" class="level-panel-close" id="levelPanelClose">Close</button>
+    </div>
+    <div class="level-big">Level <span id="levelPanelLevel">1</span></div>
+    <div class="level-xp-row">
+      <div class="level-xp-bar"><div class="level-xp-fill" id="levelPanelFill"></div></div>
+      <div class="level-xp-label" id="levelPanelXpLabel">0 / 100 XP</div>
+    </div>
+    <p class="level-need" id="levelPanelNeed">Play games to earn XP. You need 100 XP for Level 2.</p>
+    <ul class="level-stats">
+      <li>Total plays: <strong id="levelPanelPlays">0</strong></li>
+      <li>Favorites: <strong id="levelPanelFavs">0</strong></li>
+      <li>Achievements: <strong id="levelPanelAchs">0</strong></li>
+      <li>XP per game: <strong>15</strong></li>
+    </ul>
+  </div>
+</div>
 
 <div class="container">
   <header>
     <div class="clock-wrap">
       <div class="clock-time" id="clockTime">--:--</div>
       <div class="clock-date" id="clockDate">---</div>
-      <div class="header-stats">
-        <span class="hstat" title="Your level">Lv <strong id="userLevel">1</strong></span>
-        <span class="hstat-sep">·</span>
-        <span class="hstat" title="XP progress"><span id="xpText">0/100</span></span>
-      </div>
+      <button type="button" class="level-btn" id="levelBtn" title="Level info">
+        Lv <strong id="userLevel">1</strong>
+        <span class="level-btn-xp" id="xpText">0/100</span>
+      </button>
     </div>
-    <h1 id="mainTitle">☢️ URANIUM</h1>
+    <h1 id="mainTitle">URANIUM</h1>
     <p class="tagline" id="mainTagline">Play hundreds of games instantly</p>
-    <p class="status-line" id="statusLine">Loading…</p>
+    <p class="status-line" id="statusLine">Loadingâ¦</p>
   </header>
 
   <div class="top-controls">
     <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Search gamesâ¦" autocomplete="off">
     </div>
     <div class="apps-wrap">
-      <button class="settings-btn" id="appsBtn" type="button">📱 Apps</button>
+      <button class="settings-btn" id="appsBtn" type="button">Apps</button>
       <div class="apps-dropdown" id="appsDropdown">
         <button type="button" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer'); closeAppsDropdown();">
-          <span class="app-emoji">💬</span> Discord
+          Discord
         </button>
         <button type="button" onclick="openApp('Uranium AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html'); closeAppsDropdown();">
-          <span class="app-emoji">🤖</span> Uranium AI
+          Uranium AI
         </button>
         <button type="button" onclick="openApp('Movies', 'https://cinera.cc/'); closeAppsDropdown();">
-          <span class="app-emoji">🎬</span> Movies
+          Movies
         </button>
       </div>
     </div>
-    <button class="settings-btn" id="randomGameBtn" type="button">🎲 Random</button>
+    <button class="settings-btn" id="randomGameBtn" type="button">Random</button>
     <button class="settings-btn" id="openSettings">Settings</button>
   </div>
 
   <!-- Continue Playing -->
   <div class="continue-section" id="continueSection" style="display:none;">
-    <div class="section-title">▶ Continue Playing</div>
+    <div class="section-title">Continue Playing</div>
     <div class="continue-row" id="continueRow"></div>
   </div>
 
   <div class="filter-bar" id="filterBar"></div>
-  <div id="gameCount" class="game-count">— Games</div>
+  <div id="gameCount" class="game-count">â Games</div>
   <div class="games-grid" id="gamesGrid">
     <div class="loading-state">
       <div class="spinner"></div>
-      <div>Loading…</div>
+      <div>Loadingâ¦</div>
     </div>
   </div>
 </div>
@@ -643,12 +658,12 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
   <div class="modal-hover-zone" id="modalHoverZone" aria-hidden="true"></div>
   <div class="modal-controls" id="modalControls">
     <button class="modal-btn" id="oldMoviesBtn" style="display:none;" onclick="openApp('DriveFlix Old', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/netfolixa.html')">Old Movies</button>
-    <button class="modal-btn" id="fullscreenBtn">⛶ Fullscreen</button>
-    <button class="modal-btn" id="closeBtn">Close ✕</button>
+    <button class="modal-btn" id="fullscreenBtn">Fullscreen</button>
+    <button class="modal-btn" id="closeBtn">Close â</button>
   </div>
   <iframe id="gameFrame" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals"></iframe>
   <div id="modalError">
-    <div class="icon">⚠️</div>
+    <div class="icon">â ï¸</div>
     <div id="modalErrorTitle" style="font-size:1.25em;font-weight:700;color:#fff;"></div>
     <div id="modalErrorReason" style="font-size:0.9em;color:rgba(255,255,255,0.6);"></div>
   </div>
@@ -657,10 +672,10 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 <!-- ANNOUNCEMENT POPUP -->
 <div id="announceOverlay" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
   <div class="announce-box">
-    <div class="announce-icon">☢️</div>
+    <div class="announce-icon">â¢ï¸</div>
     <h2 id="announceTitle">Welcome to Uranium</h2>
     <p>Play hundreds of games instantly. Use the <strong>Apps</strong> button for Discord, AI, and movies. Star games to favorite them and level up by playing.</p>
-    <p class="announce-note">Tip: closing a game may lose your progress — save if you can.</p>
+    <p class="announce-note">ð¡ Tip: closing a game may lose your progress â save if you can.</p>
     <div class="announce-actions">
       <button type="button" class="announce-discord" id="announceDiscord">Join Discord</button>
       <button type="button" class="announce-ok" id="announceOk">Got it</button>
@@ -769,7 +784,15 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
       <option value="Google Docs">Google Docs</option>
       <option value="Google Slides">Google Slides</option>
       <option value="Google Drive">Google Drive</option>
+      <option value="custom">Custom (title + photo below)</option>
     </select>
+    <label style="margin-top:10px;">Custom Tab Title</label>
+    <input type="text" id="setCloakTitle" placeholder="e.g. Google Classroom" value="">
+    <label style="margin-top:10px;">Custom Favicon URL (photo from web)</label>
+    <input type="text" id="setCloakIcon" placeholder="https://example.com/icon.png" value="">
+    <p style="font-size:0.75em;color:rgba(255,255,255,0.4);margin-top:6px;line-height:1.4;">
+      Paste a direct image link (png, jpg, ico, svg). Used when profile is Custom or as override if filled in.
+    </p>
   </div>
 
   <div class="settings-group">
@@ -806,6 +829,8 @@ const DEFAULTS = {
   reducedMotion: false,
   stealth: false,
   cloakProfile: 'random',
+  cloakTitle: '',
+  cloakIcon: '',
   openAboutBlank: false,
   wallpaper: 'none',
   panicUrl: 'https://www.google.com'
@@ -865,7 +890,7 @@ function checkAchievements() {
     if (a.check(player)) {
       player.achievements.push(a.id);
       savePlayerData();
-      showToast('🏆 ' + a.title + ' — ' + a.desc);
+      showToast('Achievement: ' + a.title + ' â ' + a.desc);
     }
   });
 }
@@ -883,10 +908,46 @@ function xpIntoLevel(xp) {
 function updateStatsUI() {
   const level = getLevel(player.xp);
   const into = xpIntoLevel(player.xp);
+  const need = 100 - into;
   const levelEl = document.getElementById('userLevel');
   const xpText = document.getElementById('xpText');
   if (levelEl) levelEl.textContent = level;
   if (xpText) xpText.textContent = into + '/100 XP';
+
+  const pLevel = document.getElementById('levelPanelLevel');
+  const pFill = document.getElementById('levelPanelFill');
+  const pLabel = document.getElementById('levelPanelXpLabel');
+  const pNeed = document.getElementById('levelPanelNeed');
+  const pPlays = document.getElementById('levelPanelPlays');
+  const pFavs = document.getElementById('levelPanelFavs');
+  const pAchs = document.getElementById('levelPanelAchs');
+  if (pLevel) pLevel.textContent = level;
+  if (pFill) pFill.style.width = into + '%';
+  if (pLabel) pLabel.textContent = into + ' / 100 XP this level';
+  if (pNeed) {
+    pNeed.textContent = need <= 0
+      ? 'You just leveled up! Keep playing for Level ' + (level + 1) + '.'
+      : 'You need ' + need + ' more XP for Level ' + (level + 1) + ' (about ' + Math.ceil(need / 15) + ' more games).';
+  }
+  if (pPlays) pPlays.textContent = player.plays || 0;
+  if (pFavs) pFavs.textContent = (player.favorites || []).length;
+  if (pAchs) pAchs.textContent = (player.achievements || []).length;
+}
+
+function openLevelPanel() {
+  updateStatsUI();
+  const ov = document.getElementById('levelOverlay');
+  if (ov) {
+    ov.classList.add('show');
+    ov.setAttribute('aria-hidden', 'false');
+  }
+}
+function closeLevelPanel() {
+  const ov = document.getElementById('levelOverlay');
+  if (ov) {
+    ov.classList.remove('show');
+    ov.setAttribute('aria-hidden', 'true');
+  }
 }
 
 function isFavorite(game) {
@@ -950,7 +1011,7 @@ function renderContinuePlaying() {
   });
 }
 
-/* IXL splash → loading messages → enter site */
+/* IXL splash â loading messages â enter site */
 function setupIxlSplash() {
   const splash = document.getElementById('ixlSplash');
   const btn = document.getElementById('ixlEnterBtn');
@@ -962,11 +1023,11 @@ function setupIxlSplash() {
   document.title = 'ClassLink | My Apps';
 
   const messages = [
-    'Signing you in…',
-    'Loading your apps…',
-    'Connecting to school resources…',
-    'Syncing roster…',
-    'Almost ready…'
+    'Signing you inâ¦',
+    'Loading your appsâ¦',
+    'Connecting to school resourcesâ¦',
+    'Syncing rosterâ¦',
+    'Almost readyâ¦'
   ];
 
   let started = false;
@@ -1172,21 +1233,21 @@ function saveSettings() {
 
 /* ========== IMPROVED TAB CLOAKING ========== */
 const CLOAK_PROFILES = [
-  { title: "Google Slides", icon: "📊" },
-  { title: "Google Docs", icon: "📄" },
-  { title: "Google Drive", icon: "📁" },
-  { title: "Google Classroom", icon: "🎓" },
-  { title: "Classroom", icon: "🎓" },
-  { title: "Kahoot!", icon: "🎮" },
-  { title: "Canvas", icon: "📘" },
-  { title: "ClassLink | My Apps", icon: "🔗" },
-  { title: "Clever | Portal", icon: "🔵" },
-  { title: "Google Sheets", icon: "📈" },
-  { title: "Meet - Google", icon: "📹" },
-  { title: "Docs", icon: "📄" },
-  { title: "Slides", icon: "📊" },
-  { title: "Drive", icon: "📁" },
-  { title: "New Tab", icon: "🌐" }
+  { title: "Google Slides", icon: "S" },
+  { title: "Google Docs", icon: "D" },
+  { title: "Google Drive", icon: "G" },
+  { title: "Google Classroom", icon: "C" },
+  { title: "Classroom", icon: "C" },
+  { title: "Kahoot!", icon: "K" },
+  { title: "Canvas", icon: "C" },
+  { title: "ClassLink | My Apps", icon: "CL" },
+  { title: "Clever | Portal", icon: "CL" },
+  { title: "Google Sheets", icon: "S" },
+  { title: "Meet - Google", icon: "M" },
+  { title: "Docs", icon: "D" },
+  { title: "Slides", icon: "S" },
+  { title: "Drive", icon: "G" },
+  { title: "New Tab", icon: "N" }
 ];
 
 function applyCloaking() {
@@ -1197,32 +1258,53 @@ function applyCloaking() {
   if (settings.stealth) {
     document.body.classList.add('stealth');
     const pickProfile = () => {
+      if (settings.cloakProfile === 'custom') {
+        return {
+          title: (settings.cloakTitle && settings.cloakTitle.trim()) || 'Google Classroom',
+          icon: 'C',
+          customIcon: (settings.cloakIcon && settings.cloakIcon.trim()) || ''
+        };
+      }
       if (settings.cloakProfile && settings.cloakProfile !== 'random') {
         const found = CLOAK_PROFILES.find(p => p.title === settings.cloakProfile);
-        if (found) return found;
+        if (found) return { ...found, customIcon: (settings.cloakIcon && settings.cloakIcon.trim()) || '' };
       }
-      return CLOAK_PROFILES[Math.floor(Math.random() * CLOAK_PROFILES.length)];
+      const r = CLOAK_PROFILES[Math.floor(Math.random() * CLOAK_PROFILES.length)];
+      return { ...r, customIcon: (settings.cloakIcon && settings.cloakIcon.trim()) || '' };
+    };
+    const setFav = (p) => {
+      if (p.customIcon && /^https?:\/\//i.test(p.customIcon)) {
+        favicon.href = p.customIcon;
+      } else {
+        const letter = (p.icon || 'C').toString().slice(0, 2);
+        favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='70'>${letter}</text></svg>`;
+      }
     };
     const profile = pickProfile();
     document.title = profile.title;
-    titleEl.textContent = profile.icon + " " + profile.title;
+    titleEl.textContent = profile.title;
     taglineEl.textContent = "Educational resources and tools";
-    favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${profile.icon}</text></svg>`;
+    setFav(profile);
 
     if (cloakInterval) clearInterval(cloakInterval);
-    cloakInterval = setInterval(() => {
-      if (settings.stealth) {
-        const p = pickProfile();
-        document.title = p.title;
-        favicon.href = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${p.icon}</text></svg>`;
-      }
-    }, 9000 + Math.random() * 6000);
+    // Only rotate when profile is random and no fixed custom icon
+    if (settings.cloakProfile === 'random' && !(settings.cloakIcon && settings.cloakIcon.trim())) {
+      cloakInterval = setInterval(() => {
+        if (settings.stealth) {
+          const p = pickProfile();
+          document.title = p.title;
+          setFav(p);
+        }
+      }, 9000 + Math.random() * 6000);
+    } else {
+      cloakInterval = null;
+    }
   } else {
     document.body.classList.remove('stealth');
     document.title = "Uranium Games";
-    titleEl.textContent = "☢️ URANIUM";
+    titleEl.textContent = "URANIUM";
     taglineEl.textContent = "Play hundreds of games instantly";
-    favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☢️</text></svg>";
+    favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>U</text></svg>";
     if (cloakInterval) {
       clearInterval(cloakInterval);
       cloakInterval = null;
@@ -1306,14 +1388,14 @@ function renderGames(list) {
     const favClass = isFavorite(game) ? 'favorited' : '';
     card.innerHTML = `
       <div class="game-image">
-        <button type="button" class="fav-btn ${favClass}" title="Favorite" aria-label="Favorite">★</button>
+        <button type="button" class="fav-btn ${favClass}" title="Favorite" aria-label="Favorite">â­</button>
         <img src="${game.resolvedCover || ''}" alt="${game.name}" loading="lazy"
           onerror="this.style.display='none';this.parentElement.querySelector('.fallback').style.display='flex';">
         <div class="fallback">NO IMAGE<br>${game.name}</div>
       </div>
       <div class="game-info">
         <div class="game-title">${game.name}</div>
-        <div class="game-author">${game.author || 'Unknown'} · ${sourceBadge}</div>
+        <div class="game-author">${game.author || 'Unknown'} Â· ${sourceBadge}</div>
       </div>`;
     const favBtn = card.querySelector('.fav-btn');
     favBtn.onclick = e => {
@@ -1330,7 +1412,7 @@ function renderGames(list) {
 function buildFilterBar() {
   const filters = [
     { id: 'all', label: 'All' },
-    { id: 'favorites', label: '★ Favorites' },
+    { id: 'favorites', label: 'Favorites' },
     { id: 'uranium', label: 'Uranium' },
     { id: 'gnmath', label: 'GN Math' },
     { id: 'flash', label: 'Flash' },
@@ -1416,7 +1498,7 @@ async function fetchGnMathSource(src) {
 }
 
 async function loadAllSources() {
-  statusLine.textContent = 'Loading games…';
+  statusLine.textContent = 'Loading gamesâ¦';
   const uraniumGames = customGames.map(g => ({
     ...g,
     source: 'uranium',
@@ -1449,7 +1531,7 @@ async function loadAllSources() {
   const gCount = allGames.filter(g => g.source === 'gnmath').length;
   statusLine.textContent = settings.stealth
     ? `${allGames.length} resources ready`
-    : `${allGames.length} games ready · Uranium ${uCount} · GN Math ${gCount}`;
+    : `${allGames.length} games ready Â· Uranium ${uCount} Â· GN Math ${gCount}`;
 
   buildFilterBar();
   handleSearch();
@@ -1747,7 +1829,7 @@ function importDataFromObject(obj) {
     const gCount = allGames.filter(g => g.source === 'gnmath').length;
     statusLine.textContent = settings.stealth
       ? `${allGames.length} resources ready`
-      : `${allGames.length} games ready · Uranium ${uCount} · GN Math ${gCount}`;
+      : `${allGames.length} games ready Â· Uranium ${uCount} Â· GN Math ${gCount}`;
     buildFilterBar();
     handleSearch();
   }
@@ -1808,6 +1890,10 @@ function openSettings() {
   document.getElementById('setStealth').checked = settings.stealth;
   const cloakSel = document.getElementById('setCloakProfile');
   if (cloakSel) cloakSel.value = settings.cloakProfile || 'random';
+  const cloakTitleEl = document.getElementById('setCloakTitle');
+  if (cloakTitleEl) cloakTitleEl.value = settings.cloakTitle || '';
+  const cloakIconEl = document.getElementById('setCloakIcon');
+  if (cloakIconEl) cloakIconEl.value = settings.cloakIcon || '';
   document.getElementById('setOpenAboutBlank').checked = !!settings.openAboutBlank;
   document.getElementById('setWallpaper').value = settings.wallpaper || 'none';
   document.getElementById('setPanicUrl').value = settings.panicUrl || 'https://www.google.com';
@@ -1830,6 +1916,17 @@ document.getElementById('randomGameBtn').onclick = () => {
   const g = allGames[Math.floor(Math.random() * allGames.length)];
   openGame(g);
 };
+
+const levelBtn = document.getElementById('levelBtn');
+if (levelBtn) levelBtn.onclick = openLevelPanel;
+const levelPanelClose = document.getElementById('levelPanelClose');
+if (levelPanelClose) levelPanelClose.onclick = closeLevelPanel;
+const levelOverlay = document.getElementById('levelOverlay');
+if (levelOverlay) {
+  levelOverlay.addEventListener('click', (e) => {
+    if (e.target === levelOverlay) closeLevelPanel();
+  });
+}
 
 function exportFavoritesOnly() {
   const favGames = allGames.filter(g => isFavorite(g)).map(g => ({
@@ -1886,6 +1983,22 @@ if (cloakProfileEl) {
     if (settings.stealth) applyCloaking();
   };
 }
+const cloakTitleInput = document.getElementById('setCloakTitle');
+if (cloakTitleInput) {
+  cloakTitleInput.oninput = e => {
+    settings.cloakTitle = e.target.value;
+    saveSettings();
+    if (settings.stealth) applyCloaking();
+  };
+}
+const cloakIconInput = document.getElementById('setCloakIcon');
+if (cloakIconInput) {
+  cloakIconInput.oninput = e => {
+    settings.cloakIcon = e.target.value;
+    saveSettings();
+    if (settings.stealth) applyCloaking();
+  };
+}
 document.getElementById('setOpenAboutBlank').onchange = e => { settings.openAboutBlank = e.target.checked; saveSettings(); };
 document.getElementById('setWallpaper').onchange = e => { settings.wallpaper = e.target.value; applySettings(); saveSettings(); };
 document.getElementById('setPanicUrl').oninput = e => { settings.panicUrl = e.target.value; saveSettings(); };
@@ -1918,7 +2031,9 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (e.key === 'Escape') {
-    if (appsDropdown && appsDropdown.classList.contains('open')) closeAppsDropdown();
+    const levelOv = document.getElementById('levelOverlay');
+    if (levelOv && levelOv.classList.contains('show')) closeLevelPanel();
+    else if (appsDropdown && appsDropdown.classList.contains('open')) closeAppsDropdown();
     else if (panel.classList.contains('open')) closeSettings();
     else if (gameModal.style.display === 'flex') closeModal();
     return;
@@ -1976,20 +2091,10 @@ function showAnnouncementIfNeeded() {
 }
 
 window.addEventListener('load', () => {
-  setupIxlSplash();
   updateStatsUI();
   renderContinuePlaying();
   loadAllSources();
-  // Announcement only after leaving IXL splash
-  const splash = document.getElementById('ixlSplash');
-  const tryAnnounce = () => {
-    if (splash && !splash.classList.contains('hidden')) {
-      setTimeout(tryAnnounce, 500);
-      return;
-    }
-    showAnnouncementIfNeeded();
-  };
-  setTimeout(tryAnnounce, 600);
+  setTimeout(showAnnouncementIfNeeded, 400);
 });
 </script>
 </body>
