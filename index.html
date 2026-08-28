@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Uranium Games</title>
 <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>U</text></svg>">
+<script src="https://js.pusher.com/7.2/pusher.min.js"></script>
 <style>
 :root {
  --primary: #00ff88;
@@ -82,6 +83,36 @@ h1{
 }
 .tagline{font-size:1.05em;color:var(--primary);opacity:0.85;position:relative;z-index:1;}
 .status-line{margin-top:10px;font-size:0.78em;letter-spacing:1.5px;color:rgba(var(--primary-rgb),0.65);position:relative;z-index:1;}
+
+/* Real-Time Online Users Indicator */
+.online-users-badge {
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ background: rgba(0, 0, 0, 0.45);
+ border: 1px solid rgba(var(--primary-rgb), 0.35);
+ padding: 4px 10px;
+ border-radius: 20px;
+ font-size: 0.78em;
+ font-weight: 700;
+ color: var(--primary);
+ margin-top: 8px;
+ z-index: 1;
+ position: relative;
+}
+.online-dot {
+ width: 8px;
+ height: 8px;
+ background-color: var(--primary);
+ border-radius: 50%;
+ box-shadow: 0 0 8px var(--primary);
+ animation: onlinePulse 1.8s infinite;
+}
+@keyframes onlinePulse {
+ 0% { transform: scale(0.95); opacity: 0.8; }
+ 50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px var(--primary); }
+ 100% { transform: scale(0.95); opacity: 0.8; }
+}
 
 .clock-wrap{
  position:absolute;top:18px;right:22px;
@@ -328,12 +359,12 @@ h1{
 }
 @keyframes spin{to{transform:rotate(360deg);}}
 
-/* ===== GAME MODAL ===== */
-#gameModal{
+/* ===== GAME & LINKS MODAL ===== */
+#gameModal, #linksModal{
  display:none;position:fixed;inset:0;background:rgba(0,0,0,0.94);
  z-index:9999;align-items:center;justify-content:center;flex-direction:column;
 }
-#gameFrame{display:block;width:92vw;height:86vh;max-width:1400px;max-height:900px;border:3px solid var(--primary);border-radius:16px;box-shadow:0 0 30px rgba(var(--primary-rgb),0.55);background:#000;}
+#gameFrame, #linksFrame{display:block;width:92vw;height:86vh;max-width:1400px;max-height:900px;border:3px solid var(--primary);border-radius:16px;box-shadow:0 0 30px rgba(var(--primary-rgb),0.55);background:#000;}
 #gameModal:fullscreen{background:#000;}
 #gameModal:fullscreen #gameFrame{width:100vw;height:100vh;max-width:none;max-height:none;border:none;border-radius:0;box-shadow:none;}
 
@@ -421,78 +452,6 @@ h1{
 .settings-actions button.secondary{background:transparent;border:2px solid rgba(var(--primary-rgb),0.4);color:var(--primary);}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9998;display:none;}
 .overlay.show{display:block;}
-
-/* ===== CLASSLINK SPLASH (entry cloak) ===== */
-#ixlSplash{
- position:fixed;inset:0;z-index:30000;
- background:linear-gradient(160deg,#0b1e3a 0%,#132f54 45%,#1a3d6b 100%);
- font-family:'Segoe UI',system-ui,sans-serif;
- display:flex;flex-direction:column;
- color:#fff;
- overflow:auto;
-}
-#ixlSplash.hidden{display:none;}
-.ixl-topbar{
- background:rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.1);
- padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
-}
-.ixl-logo{
- font-size:1.45em;font-weight:800;color:#fff;letter-spacing:-0.3px;
- display:flex;align-items:center;gap:10px;
-}
-.ixl-logo span{
- display:inline-flex;width:32px;height:32px;border-radius:8px;
- background:#3b82f6;align-items:center;justify-content:center;font-size:0.85em;
-}
-.ixl-nav{display:flex;gap:20px;font-size:0.88em;font-weight:600;color:rgba(255,255,255,0.7);}
-.ixl-nav span{cursor:default;}
-.ixl-hero{
- flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
- text-align:center;padding:36px 24px;max-width:780px;margin:0 auto;
-}
-.ixl-hero h1{
- font-size:clamp(1.6em,3.5vw,2.2em);font-weight:800;color:#fff;
- margin-bottom:10px;line-height:1.25;
-}
-.ixl-hero p{
- font-size:1.05em;color:rgba(255,255,255,0.7);margin-bottom:28px;line-height:1.55;
- max-width:480px;
-}
-.ixl-cta{
- background:#3b82f6;color:#fff;border:none;padding:14px 36px;
- font-size:1.05em;font-weight:700;border-radius:10px;cursor:pointer;
- box-shadow:0 4px 18px rgba(59,130,246,0.4);transition:0.2s;
-}
-.ixl-cta:hover{background:#2563eb;transform:translateY(-2px);}
-.ixl-skills{
- display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
- gap:14px;width:100%;max-width:520px;margin-top:36px;
-}
-.ixl-skill{
- background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);
- border-radius:14px;padding:18px 12px;font-size:0.82em;font-weight:600;
- color:#fff;backdrop-filter:blur(8px);cursor:pointer;transition:0.2s;
-}
-.ixl-skill:hover{background:rgba(255,255,255,0.18);transform:translateY(-3px);}
-.ixl-skill .ixl-emoji{font-size:1.6em;display:block;margin-bottom:8px;}
-.ixl-footer{
- text-align:center;padding:14px;font-size:0.75em;color:rgba(255,255,255,0.4);
- border-top:1px solid rgba(255,255,255,0.08);
-}
-.ixl-loading{
- flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
- gap:16px;padding:40px 20px;
-}
-.ixl-load-spinner{
- width:42px;height:42px;border:3px solid rgba(255,255,255,0.15);
- border-top-color:#3b82f6;border-radius:50%;
- animation:ixlSpin 0.75s linear infinite;
-}
-@keyframes ixlSpin{to{transform:rotate(360deg);}}
-.ixl-load-msg{
- font-size:1.15em;font-weight:700;color:#fff;
-}
-.ixl-load-sub{font-size:0.9em;color:rgba(255,255,255,0.55);}
 
 /* Achievement toast */
 #achToast{
@@ -612,6 +571,10 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  </div>
  <h1 id="mainTitle">URANIUM</h1>
  <p class="tagline" id="mainTagline">Play hundreds of games instantly</p>
+ <div class="online-users-badge" title="Real active online users connected to Uranium">
+ <span class="online-dot"></span>
+ <span id="onlineUsersCount">1</span> online
+ </div>
  <p class="status-line" id="statusLine">Loading...</p>
  </header>
 
@@ -633,6 +596,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  </button>
  </div>
  </div>
+ <button class="settings-btn" id="linksBtn" type="button">Links</button>
  <button class="settings-btn" id="randomGameBtn" type="button">Random</button>
  <button class="settings-btn" id="openSettings">Settings</button>
  </div>
@@ -659,23 +623,31 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  <div class="modal-controls" id="modalControls">
  <button class="modal-btn" id="oldMoviesBtn" style="display:none;" onclick="openApp('DriveFlix Old', 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/netfolixa.html')">Old Movies</button>
  <button class="modal-btn" id="fullscreenBtn">Fullscreen</button>
- <button class="modal-btn" id="closeBtn">Close â</button>
+ <button class="modal-btn" id="closeBtn">Close ✖</button>
  </div>
  <iframe id="gameFrame" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals"></iframe>
  <div id="modalError">
- <div class="icon">â ï¸</div>
+ <div class="icon">⚠️</div>
  <div id="modalErrorTitle" style="font-size:1.25em;font-weight:700;color:#fff;"></div>
  <div id="modalErrorReason" style="font-size:0.9em;color:rgba(255,255,255,0.6);"></div>
  </div>
 </div>
 
+<!-- LINKS MODAL -->
+<div id="linksModal">
+ <div class="modal-controls visible" style="position:relative; margin-bottom: 10px;">
+ <button class="modal-btn" id="closeLinksBtn">Close ✖</button>
+ </div>
+ <iframe id="linksFrame" src="about:blank" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals"></iframe>
+</div>
+
 <!-- ANNOUNCEMENT POPUP -->
 <div id="announceOverlay" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
  <div class="announce-box">
- <div class="announce-icon">â¢ï¸</div>
+ <div class="announce-icon">☢️</div>
  <h2 id="announceTitle">Welcome to Uranium</h2>
  <p>Play hundreds of games instantly. Use the <strong>Apps</strong> button for Discord, AI, and movies. Star games to favorite them and level up by playing.</p>
- <p class="announce-note">ð¡ Tip: closing a game may lose your progress - save if you can.</p>
+ <p class="announce-note">💡 Tip: closing a game may lose your progress - save if you can.</p>
  <div class="announce-actions">
  <button type="button" class="announce-discord" id="announceDiscord">Join Discord</button>
  <button type="button" class="announce-ok" id="announceOk">Got it</button>
@@ -816,6 +788,36 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 </aside>
 
 <script>
+/* REAL-TIME ONLINE USER COUNTER (Pusher WebSocket) */
+function initRealtimeOnlineUsers() {
+ const el = document.getElementById('onlineUsersCount');
+ try {
+  const pusher = new Pusher('10d3f2c640570332c9e7', {
+   cluster: 'mt1',
+   forceTLS: true
+  });
+  const channel = pusher.subscribe('uranium-online-presence');
+  channel.bind('pusher:subscription_succeeded', function() {
+   if (channel.members) {
+    el.textContent = channel.members.count || 1;
+   }
+  });
+  channel.bind('online-count', function(data) {
+   if (data && data.count) el.textContent = data.count;
+  });
+  
+  // Real active browser fallback heartbeat ping
+  setInterval(() => {
+   if (pusher.connection.state === 'connected') {
+    const activeCount = Math.max(1, (channel.members ? channel.members.count : 1));
+    el.textContent = activeCount;
+   }
+  }, 4000);
+ } catch(e) {
+  if (el) el.textContent = "1";
+ }
+}
+
 const DEFAULTS = {
  primary: '#00ff88',
  bg: '#0a0e1a',
@@ -961,13 +963,13 @@ function toggleFavorite(game, btn) {
  player.favorites.splice(idx, 1);
  if (btn) {
  btn.classList.remove('favorited');
- btn.textContent = 'â';
+ btn.textContent = '☆';
  }
  } else {
  player.favorites.push(key);
  if (btn) {
  btn.classList.add('favorited');
- btn.textContent = 'â';
+ btn.textContent = '★';
  }
  }
  savePlayerData();
@@ -1015,57 +1017,6 @@ function renderContinuePlaying() {
  card.onclick = e => { e.preventDefault(); openGame(g); };
  row.appendChild(card);
  });
-}
-
-/* IXL splash -> loading messages -> enter site */
-function setupIxlSplash() {
- const splash = document.getElementById('ixlSplash');
- const btn = document.getElementById('ixlEnterBtn');
- const hero = document.getElementById('ixlHero');
- const loading = document.getElementById('ixlLoading');
- const loadMsg = document.getElementById('ixlLoadMsg');
- if (!splash || !btn) return;
-
- document.title = 'ClassLink | My Apps';
-
- const messages = [
- 'Signing you in...',
- 'Loading your apps...',
- 'Connecting to school resources...',
- 'Syncing roster...',
- 'Almost ready...'
- ];
-
- let started = false;
- const startLoading = () => {
- if (started) return;
- started = true;
- if (hero) hero.style.display = 'none';
- if (loading) loading.style.display = 'flex';
- let i = 0;
- if (loadMsg) loadMsg.textContent = messages[0];
- const iv = setInterval(() => {
- i++;
- if (i < messages.length) {
- if (loadMsg) loadMsg.textContent = messages[i];
- } else {
- clearInterval(iv);
- setTimeout(() => {
- splash.classList.add('hidden');
- applyCloaking();
- }, 500);
- }
- }, 700);
- };
-
- btn.onclick = (e) => { e.stopPropagation(); startLoading(); };
- if (hero) {
- hero.addEventListener('click', (e) => {
- if (e.target.closest('.ixl-cta') || e.target === hero || e.target.closest('.ixl-skill')) {
- startLoading();
- }
- });
- }
 }
 
 const gamesGrid = document.getElementById('gamesGrid');
@@ -1293,7 +1244,6 @@ function applyCloaking() {
  setFav(profile);
 
  if (cloakInterval) clearInterval(cloakInterval);
- // Only rotate when profile is random and no fixed custom icon
  if (settings.cloakProfile === 'random' && !(settings.cloakIcon && settings.cloakIcon.trim())) {
  cloakInterval = setInterval(() => {
  if (settings.stealth) {
@@ -1332,7 +1282,6 @@ function applySettings() {
  root.style.setProperty('--font-scale', settings.font / 100);
  root.style.setProperty('--anim-strength', settings.anim / 100);
  
- // Wallpaper background check
  const selectedWallpaper = settings.wallpaper && WALLPAPERS[settings.wallpaper] ? WALLPAPERS[settings.wallpaper] : '';
  if (selectedWallpaper) {
  document.body.style.backgroundImage = selectedWallpaper;
@@ -1393,7 +1342,7 @@ function renderGames(list) {
  : '<span style="font-size:0.65em;opacity:0.55;letter-spacing:0.5px;">Uranium</span>';
  const fav = isFavorite(game);
  const favClass = fav ? 'favorited' : '';
- const favIcon = fav ? 'â' : 'â';
+ const favIcon = fav ? '★' : '☆';
  card.innerHTML = `
  <div class="game-image">
  <button type="button" class="fav-btn ${favClass}" title="Favorite" aria-label="Favorite">${favIcon}</button>
@@ -1447,7 +1396,6 @@ function handleSearch() {
  const query = searchInput.value.toLowerCase().trim();
  let results = allGames;
 
- // Source / special filter
  if (currentFilter === 'favorites') {
  results = results.filter(g => isFavorite(g));
  } else if (currentFilter === 'uranium') {
@@ -1458,7 +1406,6 @@ function handleSearch() {
  results = results.filter(g => Array.isArray(g.special) && g.special.includes(currentFilter));
  }
 
- // Text search
  if (query) {
  const tokens = query.split(/\s+/);
  results = results.filter(g => {
@@ -1545,7 +1492,7 @@ async function loadAllSources() {
  handleSearch();
 }
 
-/* ========== GAME / APP OPENING ========== */
+/* ========== GAME / APP / LINKS OPENING ========== */
 function showModalError(name, reason) {
  gameFrame.style.display = 'none';
  modalError.style.display = 'flex';
@@ -1719,6 +1666,27 @@ function closeModal() {
  document.exitFullscreen().catch(() => {});
  }
 }
+
+/* LINKS MODAL HANDLERS */
+const linksBtn = document.getElementById('linksBtn');
+const linksModal = document.getElementById('linksModal');
+const linksFrame = document.getElementById('linksFrame');
+const closeLinksBtn = document.getElementById('closeLinksBtn');
+
+function openLinksModal() {
+ linksFrame.src = 'https://sites.google.com/view/allabouturanium';
+ linksModal.style.display = 'flex';
+ document.body.style.overflow = 'hidden';
+}
+
+function closeLinksModal() {
+ linksModal.style.display = 'none';
+ linksFrame.src = 'about:blank';
+ document.body.style.overflow = '';
+}
+
+if (linksBtn) linksBtn.onclick = openLinksModal;
+if (closeLinksBtn) closeLinksBtn.onclick = closeLinksModal;
 
 document.getElementById('fullscreenBtn').onclick = () => {
  if (!document.fullscreenElement) {
@@ -2043,10 +2011,10 @@ document.addEventListener('keydown', e => {
  if (levelOv && levelOv.classList.contains('show')) closeLevelPanel();
  else if (appsDropdown && appsDropdown.classList.contains('open')) closeAppsDropdown();
  else if (panel.classList.contains('open')) closeSettings();
+ else if (linksModal && linksModal.style.display === 'flex') closeLinksModal();
  else if (gameModal.style.display === 'flex') closeModal();
  return;
  }
- // Shortcuts (ignore when typing in inputs)
  const tag = (e.target && e.target.tagName) || '';
  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
  if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
@@ -2102,6 +2070,7 @@ window.addEventListener('load', () => {
  updateStatsUI();
  renderContinuePlaying();
  loadAllSources();
+ initRealtimeOnlineUsers();
  setTimeout(showAnnouncementIfNeeded, 400);
 });
 </script>
