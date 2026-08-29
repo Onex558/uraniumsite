@@ -1,15 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Uranium Games</title>
-<link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>U</text></svg>">
+<title>Axiom</title>
+<link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">
 <style>
 :root {
- --primary: #00ff88;
- --primary-rgb: 0, 255, 136;
- --bg: #0a0e1a;
+ --primary: #7c5cff;
+ --primary-rgb: 124, 92, 255;
+ --bg: #0b0d14;
  --card-bg: rgba(10, 20, 30, 0.85);
  --glow: 0.35;
  --blur: 12px;
@@ -95,7 +96,7 @@ header::before{
 
 h1{
  font-size:3.6em;font-weight:900;letter-spacing:4px;margin-bottom:6px;
- background:linear-gradient(90deg,var(--primary),#39ff14,var(--primary));
+ background:linear-gradient(90deg,var(--primary),#a78bfa,var(--primary));
  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
  text-shadow:0 0 18px rgba(var(--primary-rgb),0.55);
  position:relative;z-index:1;
@@ -458,54 +459,6 @@ h1{
 }
 #achToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* ===== ANNOUNCEMENT POPUP ===== */
-#announceOverlay{
- display:none;position:fixed;inset:0;z-index:20000;
- background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);
- align-items:center;justify-content:center;padding:20px;
-}
-#announceOverlay.show{display:flex;}
-.announce-box{
- width:min(440px,94vw);
- background:var(--card-bg);
- backdrop-filter:blur(var(--blur));
- border:1px solid rgba(var(--primary-rgb),0.4);
- border-radius:20px;
- padding:28px 26px 22px;
- box-shadow:0 0 40px rgba(var(--primary-rgb),0.3),0 16px 48px rgba(0,0,0,0.55);
- animation:announceIn 0.4s ease-out;
- text-align:center;
- position:relative;
-}
-@keyframes announceIn{
- from{opacity:0;transform:translateY(18px) scale(0.96);}
- to{opacity:1;transform:translateY(0) scale(1);}
-}
-.announce-box h2{
- color:var(--primary);font-size:1.45em;font-weight:800;
- margin-bottom:10px;letter-spacing:0.5px;
-}
-.announce-box p{
- color:rgba(255,255,255,0.75);font-size:0.95em;line-height:1.55;
- margin-bottom:10px;
-}
-.announce-box .announce-note{
- font-size:0.82em;color:rgba(var(--primary-rgb),0.65);margin-bottom:18px;
-}
-.announce-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
-.announce-actions button{
- padding:12px 22px;border-radius:12px;border:none;font-weight:700;
- font-size:0.95em;cursor:pointer;transition:0.2s;
-}
-.announce-actions .announce-ok{
- background:var(--primary);color:#000;
- box-shadow:0 0 18px rgba(var(--primary-rgb),0.45);
-}
-.announce-actions .announce-ok:hover{filter:brightness(1.1);transform:scale(1.03);}
-.announce-actions .announce-discord{
- background:#5865F2;color:#fff;
-}
-.announce-actions .announce-discord:hover{filter:brightness(1.1);transform:scale(1.03);}
 
 /* Stealth visual */
 body.stealth header::before{content:'';}
@@ -561,7 +514,7 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  </button>
  </div>
  
- <!-- Cool Uranium Orbit Core Logo -->
+ <!-- Cool Axiom Orbit Core Logo -->
  <div class="header-logo-wrap">
   <svg class="header-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
     <circle cx="50" cy="50" r="46" stroke="var(--primary)" stroke-width="3" fill="none" opacity="0.4" stroke-dasharray="6 6"/>
@@ -570,12 +523,12 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
     <path d="M 50,50 L 50,16 A 34,34 0 0,1 79.4,33 Z" fill="var(--primary)" opacity="0.85"/>
     <path d="M 50,50 L 79.4,67 A 34,34 0 0,1 50,84 Z" fill="var(--primary)" opacity="0.85"/>
     <path d="M 50,50 L 20.6,67 A 34,34 0 0,1 20.6,33 Z" fill="var(--primary)" opacity="0.85"/>
-    <circle cx="50" cy="50" r="6" fill="#0a0e1a"/>
+    <circle cx="50" cy="50" r="6" fill="#0b0d14"/>
   </svg>
  </div>
 
- <h1 id="mainTitle">URANIUM</h1>
- <p class="tagline" id="mainTagline">Play hundreds of games instantly</p>
+ <h1 id="mainTitle">AXIOM</h1>
+ <p class="tagline" id="mainTagline">Play instantly. No limits.</p>
  <p class="status-line" id="statusLine">Loading...</p>
  </header>
 
@@ -587,8 +540,8 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  <div class="apps-wrap">
  <button class="settings-btn" id="appsBtn" type="button">Apps</button>
  <div class="apps-dropdown" id="appsDropdown">
- <button type="button" onclick="openApp('Uranium AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html'); closeAppsDropdown();">
- Uranium AI
+ <button type="button" onclick="openApp('Axiom AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html'); closeAppsDropdown();">
+ Axiom AI
  </button>
  <button type="button" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer'); closeAppsDropdown();">
  Discord
@@ -644,18 +597,6 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  <iframe id="linksFrame" src="about:blank" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals"></iframe>
 </div>
 
-<!-- ANNOUNCEMENT POPUP -->
-<div id="announceOverlay" role="dialog" aria-modal="true" aria-labelledby="announceTitle">
- <div class="announce-box">
- <h2 id="announceTitle">Welcome to Uranium</h2>
- <p>Play hundreds of games instantly. Use the <strong>Apps</strong> button for Uranium AI, Discord, Movies, and Links. Star games to favorite them and level up by playing.</p>
- <p class="announce-note">Tip: closing a game may lose your progress - save if you can.</p>
- <div class="announce-actions">
- <button type="button" class="announce-discord" id="announceDiscord">Join Discord</button>
- <button type="button" class="announce-ok" id="announceOk">Got it</button>
- </div>
- </div>
-</div>
 
 <div class="overlay" id="settingsOverlay"></div>
 <aside class="settings-panel" id="settingsPanel">
@@ -697,11 +638,11 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 
  <div class="settings-group">
  <label>Primary Color</label>
- <input type="color" id="setPrimary" value="#00ff88">
+ <input type="color" id="setPrimary" value="#7c5cff">
  </div>
  <div class="settings-group">
  <label>Background Color</label>
- <input type="color" id="setBg" value="#0a0e1a">
+ <input type="color" id="setBg" value="#0b0d14">
  </div>
  <div class="settings-group">
  <label>Glow <span id="glowVal">35%</span></label>
@@ -820,8 +761,8 @@ async function fetchUserWeather() {
 }
 
 const DEFAULTS = {
- primary: '#00ff88',
- bg: '#0a0e1a',
+ primary: '#7c5cff',
+ bg: '#0b0d14',
  glow: 35,
  blur: 12,
  card: 200,
@@ -857,7 +798,7 @@ let currentFilter = 'all';
 /* ===== PLAYER DATA (favorites, recent, XP) ===== */
 function loadPlayerData() {
  try {
- const raw = localStorage.getItem('uraniumPlayer');
+ const raw = localStorage.getItem('axiomPlayer');
  if (raw) {
  const p = JSON.parse(raw);
  if (!Array.isArray(p.achievements)) p.achievements = [];
@@ -898,7 +839,7 @@ function checkAchievements() {
  });
 }
 function savePlayerData() {
- try { localStorage.setItem('uraniumPlayer', JSON.stringify(player)); } catch (_) {}
+ try { localStorage.setItem('axiomPlayer', JSON.stringify(player)); } catch (_) {}
 }
 let player = loadPlayerData();
 
@@ -984,7 +925,7 @@ function addToRecent(game) {
  author: game.author || 'Unknown',
  resolvedCover: game.resolvedCover || '',
  resolvedUrl: game.resolvedUrl || '',
- source: game.source || 'uranium'
+ source: game.source || 'axiom'
  };
  player.recent = player.recent.filter(r => (r.name + '|' + r.resolvedUrl).toLowerCase() !== (entry.name + '|' + entry.resolvedUrl).toLowerCase());
  player.recent.unshift(entry);
@@ -1034,20 +975,13 @@ const filterBar = document.getElementById('filterBar');
 /* ========== EXTERNAL SOURCES (GN Math etc.) ========== */
 const externalSources = [
  {
-    name: "GN Math Zone",
-    type: "json",
-    json: "https://cdn.jsdelivr.net/gh/freebuisness/assets@main/zones.json",
-    cover: "https://cdn.jsdelivr.net/gh/freebuisness/covers@main",
-    html: "https://cdn.jsdelivr.net/gh/freebuisness/html@main",
-    sourceTag: "gnmath"
-  },
-  {
-    name: "NettleWeb",
-    type: "nettleweb",
-    json: "https://cdn.jsdelivr.net/gh/nettleweb/nettleweb@main/games.json",
-    htmlBase: "https://nettleweb.github.io/nettleweb/games/",
-    sourceTag: "nettleweb"
-  }
+ name: "GN Math Zone",
+ type: "json",
+ json: "https://cdn.jsdelivr.net/gh/freebuisness/assets@main/zones.json",
+ cover: "https://cdn.jsdelivr.net/gh/freebuisness/covers@main",
+ html: "https://cdn.jsdelivr.net/gh/freebuisness/html@main",
+ sourceTag: "gnmath"
+ }
 ];
 
 /* ========== FULL GAME LIST ========== */
@@ -1072,7 +1006,7 @@ const customGames = [
  { name:"Super Mario Bros 2", author:"Nintendo", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/super%20mario%20bros.%202%20(usa)%20(rev%201)-image.png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/smb2.html" },
  { name:"Super Mario Bros 3", author:"Nintendo", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/super%20mario%20bros.%203%20(usa)%20(rev%201)-image.png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/smb3.html" },
  { name:"Ms. Pac-Man", author:"Namco", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/mspacman-thumb.png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/mspacman.html" },
- { name:"Patrick's", author:"Uranium", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/OIP.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/patricks/index.html" },
+ { name:"Patrick's", author:"Axiom", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/OIP.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/patricks/index.html" },
  { name:"Plants vs. Zombies", author:"PopCap Games", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/plants%2Bvs.%2Bzombies%2B(usa)-image.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/pvz.html" },
  { name:"Shotgun Mario 64", author:"GomePlayTV", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/shotgunmario64.png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/shotgunmario64.html" },
  { name:"Pac-Man", author:"Namco", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/puckman-thumb.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/puckman.html" },
@@ -1189,12 +1123,12 @@ const customGames = [
 /* ========== SETTINGS ========== */
 function loadSettings() {
  try {
- const raw = localStorage.getItem('uraniumSettings');
+ const raw = localStorage.getItem('axiomSettings');
  return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
  } catch { return { ...DEFAULTS }; }
 }
 function saveSettings() {
- localStorage.setItem('uraniumSettings', JSON.stringify(settings));
+ localStorage.setItem('axiomSettings', JSON.stringify(settings));
 }
 
 /* ========== IMPROVED TAB CLOAKING ========== */
@@ -1266,10 +1200,10 @@ function applyCloaking() {
  }
  } else {
  document.body.classList.remove('stealth');
- document.title = "Uranium Games";
- titleEl.textContent = "URANIUM";
- taglineEl.textContent = "Play hundreds of games instantly";
- favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>U</text></svg>";
+ document.title = "Axiom";
+ titleEl.textContent = "AXIOM";
+ taglineEl.textContent = "Play instantly. No limits.";
+ favicon.href = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>";
  if (cloakInterval) {
  clearInterval(cloakInterval);
  cloakInterval = null;
@@ -1348,7 +1282,7 @@ function renderGames(list) {
  card.style.animationDelay = (Math.min(i, 30) * 0.025) + 's';
  const sourceBadge = game.source === 'gnmath'
  ? '<span style="font-size:0.65em;opacity:0.55;letter-spacing:0.5px;">GN Math</span>'
- : '<span style="font-size:0.65em;opacity:0.55;letter-spacing:0.5px;">Uranium</span>';
+ : '<span style="font-size:0.65em;opacity:0.55;letter-spacing:0.5px;">Axiom</span>';
  const fav = isFavorite(game);
  const favClass = fav ? 'favorited' : '';
  const favIcon = fav ? '★' : '☆';
@@ -1379,7 +1313,7 @@ function buildFilterBar() {
  const filters = [
  { id: 'all', label: 'All' },
  { id: 'favorites', label: 'Favorites' },
- { id: 'uranium', label: 'Uranium' },
+ { id: 'axiom', label: 'Axiom' },
  { id: 'gnmath', label: 'GN Math' },
  { id: 'flash', label: 'Flash' },
  { id: 'port', label: 'Ports' },
@@ -1409,8 +1343,8 @@ function handleSearch() {
 
  if (currentFilter === 'favorites') {
  results = results.filter(g => isFavorite(g));
- } else if (currentFilter === 'uranium') {
- results = results.filter(g => g.source === 'uranium');
+ } else if (currentFilter === 'axiom') {
+ results = results.filter(g => g.source === 'axiom');
  } else if (currentFilter === 'gnmath') {
  results = results.filter(g => g.source === 'gnmath');
  } else if (['flash', 'port', 'emulator', 'fnf'].includes(currentFilter)) {
@@ -1473,9 +1407,9 @@ async function fetchGnMathSource(src) {
 
 async function loadAllSources() {
  statusLine.textContent = 'Loading games...';
- const uraniumGames = customGames.map(g => ({
+ const axiomGames = customGames.map(g => ({
  ...g,
- source: 'uranium',
+ source: 'axiom',
  special: g.special || []
  }));
 
@@ -1484,7 +1418,7 @@ async function loadAllSources() {
  );
  const gnGames = externalLists.flat();
 
- allGames = [...uraniumGames, ...gnGames];
+ allGames = [...axiomGames, ...gnGames];
 
  const unique = [];
  const seen = new Set();
@@ -1498,14 +1432,14 @@ async function loadAllSources() {
  allGames = unique;
 
  try {
- localStorage.setItem('uraniumGamesCache', JSON.stringify(allGames));
+ localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
  } catch (_) {}
 
- const uCount = allGames.filter(g => g.source === 'uranium').length;
+ const uCount = allGames.filter(g => g.source === 'axiom').length;
  const gCount = allGames.filter(g => g.source === 'gnmath').length;
  statusLine.textContent = settings.stealth
  ? `${allGames.length} resources ready`
- : `${allGames.length} games ready - Uranium ${uCount} - GN Math ${gCount}`;
+ : `${allGames.length} games ready · Axiom ${uCount} - GN Math ${gCount}`;
 
  buildFilterBar();
  handleSearch();
@@ -1791,7 +1725,7 @@ function downloadJson(filename, data) {
 
 function exportData() {
  const payload = buildExportPayload();
- downloadJson('uranium-data-' + new Date().toISOString().slice(0, 10) + '.json', payload);
+ downloadJson('axiom-data-' + new Date().toISOString().slice(0, 10) + '.json', payload);
  statusLine.textContent = 'Data exported (' + (payload.gamesCache?.length || 0) + ' games)';
 }
 
@@ -1812,17 +1746,17 @@ function importDataFromObject(obj) {
  author: g.author || 'Unknown',
  resolvedCover: g.resolvedCover || '',
  resolvedUrl: g.resolvedUrl || '',
- source: g.source || 'uranium',
+ source: g.source || 'axiom',
  special: Array.isArray(g.special) ? g.special : []
  })).filter(g => g.name && g.resolvedUrl);
  try {
- localStorage.setItem('uraniumGamesCache', JSON.stringify(allGames));
+ localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
  } catch (_) {}
- const uCount = allGames.filter(g => g.source === 'uranium').length;
+ const uCount = allGames.filter(g => g.source === 'axiom').length;
  const gCount = allGames.filter(g => g.source === 'gnmath').length;
  statusLine.textContent = settings.stealth
  ? `${allGames.length} resources ready`
- : `${allGames.length} games ready - Uranium ${uCount} - GN Math ${gCount}`;
+ : `${allGames.length} games ready · Axiom ${uCount} - GN Math ${gCount}`;
  buildFilterBar();
  handleSearch();
  }
@@ -1857,7 +1791,7 @@ function openSiteInAboutBlank() {
  win.document.write(html);
  win.document.close();
  try {
- win.document.title = settings.stealth ? document.title : 'Uranium Games';
+ win.document.title = settings.stealth ? document.title : 'Axiom';
  } catch (_) {}
  } catch (e) {
  console.warn(e);
@@ -1929,7 +1863,7 @@ function exportFavoritesOnly() {
  resolvedUrl: g.resolvedUrl,
  source: g.source
  }));
- downloadJson('uranium-favorites-' + new Date().toISOString().slice(0, 10) + '.json', {
+ downloadJson('axiom-favorites-' + new Date().toISOString().slice(0, 10) + '.json', {
  version: 1,
  exportedAt: new Date().toISOString(),
  favorites: favGames
@@ -2061,34 +1995,11 @@ applySettings();
 updateClock();
 setInterval(updateClock, 1000);
 
-/* ===== FIRST-VISIT ANNOUNCEMENT ===== */
-function showAnnouncementIfNeeded() {
- try {
- if (localStorage.getItem('uraniumAnnounceSeen') === '1') return;
- } catch (_) {}
- const overlay = document.getElementById('announceOverlay');
- if (!overlay) return;
- overlay.classList.add('show');
- const dismiss = () => {
- overlay.classList.remove('show');
- try { localStorage.setItem('uraniumAnnounceSeen', '1'); } catch (_) {}
- };
- document.getElementById('announceOk').onclick = dismiss;
- document.getElementById('announceDiscord').onclick = () => {
- window.open('https://discord.gg/9TqZVcfvh4', '_blank', 'noopener,noreferrer');
- dismiss();
- };
- overlay.addEventListener('click', (e) => {
- if (e.target === overlay) dismiss();
- });
-}
-
 window.addEventListener('load', () => {
  updateStatsUI();
  renderContinuePlaying();
  loadAllSources();
  fetchUserWeather();
- setTimeout(showAnnouncementIfNeeded, 400);
 });
 </script>
 </body>
