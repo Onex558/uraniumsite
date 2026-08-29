@@ -1034,13 +1034,20 @@ const filterBar = document.getElementById('filterBar');
 /* ========== EXTERNAL SOURCES (GN Math etc.) ========== */
 const externalSources = [
  {
- name: "GN Math Zone",
- type: "json",
- json: "https://cdn.jsdelivr.net/gh/freebuisness/assets@main/zones.json",
- cover: "https://cdn.jsdelivr.net/gh/freebuisness/covers@main",
- html: "https://cdn.jsdelivr.net/gh/freebuisness/html@main",
- sourceTag: "gnmath"
- }
+    name: "GN Math Zone",
+    type: "json",
+    json: "https://cdn.jsdelivr.net/gh/freebuisness/assets@main/zones.json",
+    cover: "https://cdn.jsdelivr.net/gh/freebuisness/covers@main",
+    html: "https://cdn.jsdelivr.net/gh/freebuisness/html@main",
+    sourceTag: "gnmath"
+  },
+  {
+    name: "NettleWeb",
+    type: "nettleweb",
+    json: "https://cdn.jsdelivr.net/gh/nettleweb/nettleweb@main/games.json",
+    htmlBase: "https://nettleweb.github.io/nettleweb/games/",
+    sourceTag: "nettleweb"
+  }
 ];
 
 /* ========== FULL GAME LIST ========== */
