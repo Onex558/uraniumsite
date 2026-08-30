@@ -74,6 +74,25 @@ header::before{
  50%{box-shadow:0 0 calc(60px * var(--glow)) rgba(var(--primary-rgb),0.5),inset 0 0 80px rgba(var(--primary-rgb),0.12),0 10px 36px rgba(0,0,0,0.55);}
 }
 
+
+/* Real online users badge */
+.online-badge{
+ display:inline-flex;align-items:center;gap:8px;
+ padding:5px 12px;border-radius:999px;
+ background:rgba(var(--primary-rgb),0.12);
+ border:1px solid rgba(var(--primary-rgb),0.35);
+ font-size:0.78rem;font-weight:600;letter-spacing:.4px;
+ color:#fff;margin-top:6px;
+}
+.online-dot{
+ width:9px;height:9px;border-radius:50%;
+ background:#3ddc84;
+ box-shadow:0 0 8px #3ddc84;
+ animation:onlinePulse 1.8s ease-in-out infinite;
+}
+@keyframes onlinePulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.55;transform:scale(.8);}}
+.online-badge.offline .online-dot{background:#ff5a5a;box-shadow:0 0 8px #ff5a5a;animation:none;}
+
 /* Header Logo Styling */
 .header-logo-wrap {
  width: 84px;
@@ -545,6 +564,9 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
  <div class="clock-date" id="clockDate">---</div>
  <div class="weather-temp" id="weatherTemp">Weather: --</div>
  <div class="battery-line" id="batteryLine">Battery: --</div>
+ <div class="online-badge" id="onlineBadge" title="Real people on Axiom right now">
+ <span class="online-dot"></span><span id="onlineCount">Connecting...</span>
+ </div>
  <button type="button" class="level-btn" id="levelBtn" title="Level info">
  Lv <strong id="userLevel">1</strong>
  <span class="level-btn-xp" id="xpText">0/100</span>
@@ -2217,7 +2239,57 @@ window.addEventListener('load', () => {
  fetchUserWeather();
 });
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ========== REAL ONLINE USERS (realtime presence) ========== */
+(function () {
+ var SUPABASE_URL = "https://kgehjrpdwlkzsvaiwvaf.supabase.co";
+ var SUPABASE_KEY = "sb_publishable_q0etU4VaLZD8v7OuSkN1ow_P3GA1L4T";
+ var badge = document.getElementById('onlineBadge');
+ var countEl = document.getElementById('onlineCount');
+ if (!badge || !countEl || typeof supabase === 'undefined') return;
+
+ function render(n) {
+  badge.classList.remove('offline');
+  countEl.textContent = n + (n === 1 ? ' person online' : ' people online');
+ }
+ function renderOffline() {
+  badge.classList.add('offline');
+  countEl.textContent = 'Online counter offline';
+ }
+
+ try {
+  var client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  var visitorId = localStorage.getItem('axiom_visitor_id');
+  if (!visitorId) {
+   visitorId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+   localStorage.setItem('axiom_visitor_id', visitorId);
+  }
+  var channel = client.channel('axiom-online', { config: { presence: { key: visitorId } } });
+
+  function syncCount() {
+   var state = channel.presenceState();
+   render(Object.keys(state).length);
+  }
+
+  channel
+   .on('presence', { event: 'sync' }, syncCount)
+   .on('presence', { event: 'join' }, syncCount)
+   .on('presence', { event: 'leave' }, syncCount)
+   .subscribe(function (status) {
+    if (status === 'SUBSCRIBED') {
+     channel.track({ online_at: new Date().toISOString() });
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+     renderOffline();
+    }
+   });
+ } catch (e) {
+  renderOffline();
+ }
+})();
+</script>
 </body>
 </html>
-axiom_v2 (1).html
-Displaying axiom_v2 (1).html.
+axiom_v3.html
+Displaying axiom_v3.html.
