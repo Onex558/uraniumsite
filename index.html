@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -559,6 +558,9 @@ body.reduced-motion *,body.reduced-motion *::before,body.reduced-motion *::after
 
 <div class="container">
  <header>
+ <div class="axm-topleft">
+ <button type="button" class="axm-acct-btn" id="axmAccountBtn">Create an Account</button>
+ </div>
  <div class="clock-wrap">
  <div class="clock-time" id="clockTime">--:--</div>
  <div class="clock-date" id="clockDate">---</div>
@@ -2289,7 +2291,310 @@ window.addEventListener('load', () => {
  }
 })();
 </script>
+<!-- ================= AXIOM ACCOUNTS ================= -->
+<style>
+.axm-topleft{
+ position:absolute;top:18px;left:22px;z-index:2;
+}
+.axm-acct-btn{
+ background:rgba(var(--primary-rgb),0.16);
+ border:1px solid rgba(var(--primary-rgb),0.45);
+ color:#fff;padding:8px 14px;border-radius:12px;cursor:pointer;
+ font-size:0.85em;font-weight:700;letter-spacing:.3px;
+ display:inline-flex;align-items:center;gap:8px;
+ transition:transform .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.axm-acct-btn:hover{transform:translateY(-2px);background:rgba(var(--primary-rgb),0.3);
+ box-shadow:0 0 calc(26px * var(--glow)) rgba(var(--primary-rgb),0.55);}
+.axm-avatar{width:22px;height:22px;border-radius:50%;background:rgba(var(--primary-rgb),0.55);
+ display:grid;place-items:center;font-size:0.75em;overflow:hidden;}
+.axm-avatar img{width:100%;height:100%;object-fit:cover;}
+.axm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);
+ z-index:99998;display:none;}
+.axm-overlay.open{display:block;}
+.axm-modal{position:fixed;z-index:99999;top:50%;left:50%;transform:translate(-50%,-48%) scale(.97);
+ width:min(420px,92vw);background:var(--card-bg);backdrop-filter:blur(var(--blur));
+ border:1px solid rgba(var(--primary-rgb),0.4);border-radius:var(--card-radius);
+ padding:26px 24px;display:none;opacity:0;
+ box-shadow:0 0 calc(60px * var(--glow)) rgba(var(--primary-rgb),0.45),0 18px 50px rgba(0,0,0,.6);
+ transition:opacity .2s ease, transform .2s ease;}
+.axm-modal.open{display:block;opacity:1;transform:translate(-50%,-50%) scale(1);}
+.axm-modal h2{font-size:1.4em;margin-bottom:4px;}
+.axm-sub{font-size:.85em;color:rgba(255,255,255,.6);margin-bottom:18px;}
+.axm-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.axm-tab{flex:1;padding:9px;border-radius:10px;cursor:pointer;font-weight:700;font-size:.85em;
+ background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);}
+.axm-tab.active{background:rgba(var(--primary-rgb),.28);border-color:rgba(var(--primary-rgb),.6);color:#fff;}
+.axm-field{margin-bottom:12px;}
+.axm-field label{display:block;font-size:.78em;text-transform:uppercase;letter-spacing:.08em;
+ color:rgba(255,255,255,.55);margin-bottom:6px;}
+.axm-field input{width:100%;padding:11px 13px;border-radius:10px;background:rgba(0,0,0,.4);
+ border:1px solid rgba(255,255,255,.14);color:#fff;font-size:.95em;outline:none;}
+.axm-field input:focus{border-color:rgba(var(--primary-rgb),.7);
+ box-shadow:0 0 0 3px rgba(var(--primary-rgb),.18);}
+.axm-primary{width:100%;padding:12px;border:none;border-radius:11px;cursor:pointer;font-weight:800;
+ color:#fff;background:linear-gradient(135deg,rgba(var(--primary-rgb),1),rgba(var(--primary-rgb),.6));
+ margin-top:4px;font-size:.95em;}
+.axm-primary:hover{filter:brightness(1.12);}
+.axm-msg{font-size:.82em;margin:10px 0 0;min-height:18px;color:#ff8a8a;}
+.axm-msg.ok{color:#7fe7a6;}
+.axm-close{position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(255,255,255,.55);
+ font-size:1.1em;cursor:pointer;}
+.axm-me{text-align:center;}
+.axm-me .axm-big{width:64px;height:64px;border-radius:50%;margin:6px auto 12px;overflow:hidden;
+ background:rgba(var(--primary-rgb),.5);display:grid;place-items:center;font-size:1.5em;font-weight:800;}
+.axm-me .axm-big img{width:100%;height:100%;object-fit:cover;}
+.axm-logout{width:100%;padding:11px;border-radius:11px;cursor:pointer;font-weight:700;margin-top:14px;
+ background:rgba(255,80,80,.16);border:1px solid rgba(255,80,80,.45);color:#ff9d9d;}
+</style>
+
+<div class="axm-overlay" id="axmOverlay"></div>
+<div class="axm-modal" id="axmModal" role="dialog" aria-modal="true" aria-labelledby="axmTitle">
+ <button class="axm-close" id="axmClose" type="button" aria-label="Close">X</button>
+
+ <div id="axmAuthView">
+  <h2 id="axmTitle">Create an Account</h2>
+  <p class="axm-sub">One username per person. Your login stays saved on this device.</p>
+  <div class="axm-tabs">
+   <button type="button" class="axm-tab active" id="axmTabSignup">Create Account</button>
+   <button type="button" class="axm-tab" id="axmTabLogin">Log In</button>
+  </div>
+  <form id="axmForm" autocomplete="on">
+   <div class="axm-field">
+    <label for="axmUser">Username</label>
+    <input type="text" id="axmUser" name="username" placeholder="e.g. Hot_Dog" autocomplete="username" maxlength="20" required>
+   </div>
+   <div class="axm-field" id="axmEmailField">
+    <label for="axmEmail">Gmail Address</label>
+    <input type="email" id="axmEmail" name="email" placeholder="you@gmail.com" autocomplete="email">
+   </div>
+   <div class="axm-field">
+    <label for="axmPass">Password</label>
+    <input type="password" id="axmPass" name="password" placeholder="At least 6 characters" autocomplete="current-password" required>
+   </div>
+   <div class="axm-field" id="axmCodeField" style="display:none;">
+    <label for="axmCode">Verification Code</label>
+    <input type="text" id="axmCode" name="code" placeholder="6-digit code from your email" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+   </div>
+   <button class="axm-primary" type="submit" id="axmSubmit">Create Account</button>
+  </form>
+  <p class="axm-msg" id="axmMsg"></p>
+ </div>
+
+ <div id="axmMeView" style="display:none;">
+  <div class="axm-me">
+   <div class="axm-big" id="axmMeAvatar">A</div>
+   <h2 id="axmMeName">Player</h2>
+   <p class="axm-sub" id="axmMeMeta">Signed in</p>
+   <button class="axm-logout" type="button" id="axmLogout">Log Out</button>
+  </div>
+ </div>
+</div>
+
+<script>
+(function(){
+ const USERS_KEY = 'axiomAccounts';
+ const SESSION_KEY = 'axiomSession';
+ const $ = id => document.getElementById(id);
+
+ const loadUsers = () => { try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch(_) { return {}; } };
+ const saveUsers = u => localStorage.setItem(USERS_KEY, JSON.stringify(u));
+ const getSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(_) { return null; } };
+
+ async function hash(text){
+  try{
+   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('axiom::'+text));
+   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(_){
+   let h = 0; for (let i=0;i<text.length;i++){ h = (h*31 + text.charCodeAt(i))|0; }
+   return 'fallback'+h;
+  }
+ }
+
+ /* ---------- header button ---------- */
+ const btn = $('axmAccountBtn');
+ const overlay = $('axmOverlay'), modal = $('axmModal');
+ const authView = $('axmAuthView'), meView = $('axmMeView');
+ const msg = $('axmMsg');
+ let mode = 'signup';
+ let pendingSignup = null; /* holds {username, key, email, passDigest, code} while waiting for the email code */
+
+ /* ---- Optional: paste EmailJS credentials here to send REAL confirmation emails ----
+    1. Make a free account at https://www.emailjs.com
+    2. Create an Email Service + Email Template with a {{code}} and {{to_email}} variable
+    3. Paste the IDs below.
+    If left blank, the site runs in demo mode: it shows the code on screen instead of emailing it,
+    so account creation still works end-to-end without any setup. */
+ const EMAILJS_SERVICE_ID = "";
+ const EMAILJS_TEMPLATE_ID = "";
+ const EMAILJS_PUBLIC_KEY = "";
+
+ if (EMAILJS_PUBLIC_KEY){
+  const es = document.createElement('script');
+  es.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js';
+  es.async = true;
+  es.onload = function(){ try{ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }catch(_){} };
+  document.head.appendChild(es);
+ }
+
+ async function sendVerificationCode(email, code){
+  if (EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY && window.emailjs){
+   try{
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_email: email, code: code });
+    setMsg('We sent a 6-digit code to ' + email + '. Enter it below to finish.', true);
+    return;
+   }catch(err){
+    /* fall through to demo mode if the email API fails */
+   }
+  }
+  setMsg('Demo mode (no email service connected yet): your code is ' + code + ' - enter it below.', true);
+ }
+
+ function showCodeStage(){
+  $('axmCodeField').style.display = 'block';
+  $('axmUser').disabled = true;
+  $('axmEmail').disabled = true;
+  $('axmPass').disabled = true;
+  $('axmSubmit').textContent = 'Verify & Create Account';
+  $('axmCode').focus();
+ }
+ function resetSignupStage(){
+  pendingSignup = null;
+  $('axmCodeField').style.display = 'none';
+  $('axmCode').value = '';
+  $('axmUser').disabled = false;
+  $('axmEmail').disabled = false;
+  $('axmPass').disabled = false;
+  $('axmSubmit').textContent = mode === 'signup' ? 'Create Account' : 'Log In';
+ }
+
+ function initials(name){ return (name||'A').trim().charAt(0).toUpperCase(); }
+
+ function renderButton(){
+  const s = getSession();
+  if (!btn) return;
+  if (s){
+   btn.innerHTML = '<span class="axm-avatar">' + (s.picture ? '<img src="'+s.picture+'" alt="">' : initials(s.username)) + '</span>' + s.username;
+   btn.title = 'Your account';
+  } else {
+   btn.textContent = 'Create an Account';
+   btn.title = 'Create an account or log in';
+  }
+ }
+
+ function openModal(){
+  const s = getSession();
+  msg.textContent = ''; msg.className = 'axm-msg';
+  if (s){
+   authView.style.display = 'none'; meView.style.display = 'block';
+   $('axmMeName').textContent = s.username;
+   $('axmMeAvatar').innerHTML = s.picture ? '<img src="'+s.picture+'" alt="">' : initials(s.username);
+   $('axmMeMeta').textContent = (s.provider === 'google' ? 'Signed in with Google' : 'Signed in with username') +
+    (s.email ? ' - ' + s.email : '');
+  } else {
+   authView.style.display = 'block'; meView.style.display = 'none';
+   setMode(mode);
+  }
+  overlay.classList.add('open'); modal.classList.add('open');
+ }
+ function closeModal(){
+  overlay.classList.remove('open'); modal.classList.remove('open');
+  if (pendingSignup) resetSignupStage();
+ }
+
+ function setMode(m){
+  mode = m;
+  const signup = m === 'signup';
+  $('axmTabSignup').classList.toggle('active', signup);
+  $('axmTabLogin').classList.toggle('active', !signup);
+  $('axmTitle').textContent = signup ? 'Create an Account' : 'Welcome Back';
+  $('axmEmailField').style.display = signup ? 'block' : 'none';
+  $('axmEmail').required = signup;
+  $('axmPass').setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
+  resetSignupStage();
+  msg.textContent = ''; msg.className = 'axm-msg';
+ }
+
+ function setMsg(text, ok){ msg.textContent = text; msg.className = 'axm-msg' + (ok ? ' ok' : ''); }
+
+ function signIn(session){
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  renderButton();
+  openModal();
+  setTimeout(closeModal, 900);
+ }
+
+ $('axmTabSignup').addEventListener('click', ()=>setMode('signup'));
+ $('axmTabLogin').addEventListener('click', ()=>setMode('login'));
+ $('axmClose').addEventListener('click', closeModal);
+ overlay.addEventListener('click', closeModal);
+ document.addEventListener('keydown', e=>{ if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+ if (btn) btn.addEventListener('click', openModal);
+ $('axmLogout').addEventListener('click', ()=>{ localStorage.removeItem(SESSION_KEY); renderButton(); closeModal(); });
+
+ $('axmForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const raw = $('axmUser').value.trim();
+  const pass = $('axmPass').value;
+
+  /* ---- LOG IN ---- */
+  if (mode === 'login'){
+   if (!/^[A-Za-z0-9_]{3,20}$/.test(raw)) return setMsg('Username must be 3-20 characters: letters, numbers or _');
+   if (pass.length < 6) return setMsg('Password must be at least 6 characters.');
+   const users = loadUsers();
+   const key = raw.toLowerCase();
+   const digest = await hash(pass);
+   const acct = users[key];
+   if (!acct || acct.pass !== digest) return setMsg('Wrong username or password.');
+   setMsg('Welcome back!', true);
+   signIn({ username: acct.username, provider: acct.provider || 'local', picture: acct.picture, email: acct.email });
+   return;
+  }
+
+  /* ---- SIGN UP, STEP 2: a code was already sent - check what the user typed ---- */
+  if (pendingSignup){
+   const enteredCode = $('axmCode').value.trim();
+   if (!enteredCode) return setMsg('Enter the verification code we sent to your Gmail.');
+   if (enteredCode !== pendingSignup.code) return setMsg("That code doesn't match. Check your email and try again.");
+
+   const users = loadUsers();
+   users[pendingSignup.key] = {
+    username: pendingSignup.username, pass: pendingSignup.passDigest,
+    email: pendingSignup.email, created: Date.now(), provider: 'local'
+   };
+   saveUsers(users);
+   setMsg('Email verified! Creating your account...', true);
+   const doneUsername = pendingSignup.username, doneEmail = pendingSignup.email;
+   resetSignupStage();
+   signIn({ username: doneUsername, provider: 'local', email: doneEmail });
+   return;
+  }
+
+  /* ---- SIGN UP, STEP 1: validate details and send the confirmation code ---- */
+  const email = $('axmEmail').value.trim();
+  if (!/^[A-Za-z0-9_]{3,20}$/.test(raw)) return setMsg('Username must be 3-20 characters: letters, numbers or _');
+  if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(email)) return setMsg('Please enter a valid Gmail address (e.g. name@gmail.com).');
+  if (pass.length < 6) return setMsg('Password must be at least 6 characters.');
+
+  const users = loadUsers();
+  const key = raw.toLowerCase();          /* unique check is case-insensitive */
+  if (users[key]) return setMsg('"' + raw + '" is already taken. Please pick a different username.');
+
+  const digest = await hash(pass);
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  pendingSignup = { username: raw, key, email, passDigest: digest, code };
+
+  setMsg('Sending your verification code...', true);
+  await sendVerificationCode(email, code);
+  showCodeStage();
+ });
+
+ renderButton();
+})();
+</script>
+<!-- =============== END AXIOM ACCOUNTS =============== -->
+
 </body>
 </html>
-axiom_v3.html
-Displaying axiom_v3.html.
+axiom_accounts (3).html
+Displaying axiom_accounts (3).html.
