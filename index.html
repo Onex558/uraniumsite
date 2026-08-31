@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,6 +27,10 @@ html,body{height:100%;}
 body{
   font-family:'Outfit',system-ui,-apple-system,sans-serif;
   background: var(--bg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
@@ -201,16 +202,38 @@ body::after{
 
 #viewGames{
   flex-direction: column;
-  padding: 24px 24px 40px 140px;
+  padding: 72px 28px 48px 150px;
+  gap: 0;
 }
-.games-top{
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 18px; flex-wrap: wrap;
+.games-header{
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
 }
-.games-top h1{
-  font-size: 1.5em; font-weight: 800; letter-spacing: -0.03em;
+.games-heading{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.games-heading h1{
+  font-size: 1.6em; font-weight: 800; letter-spacing: -0.03em; margin: 0;
 }
-.games-search{ flex: 1; max-width: 340px; position: relative; }
+.games-tools{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tool-btn{
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 11px 16px; border-radius: 12px; font-size: 0.82em; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.tool-btn:hover{ border-color: rgba(var(--primary-rgb),0.5); color: var(--primary); }
+.games-panel{
+  background: rgba(12,12,20,0.5);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+}
+.games-panel-head{
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px;
+}
+.games-panel-head .section-title{ margin: 0; color: var(--text); font-size: 0.95em; }
+.games-search{ width: min(320px, 60vw); position: relative; }
 .games-search input{
   width: 100%; padding: 11px 36px 11px 14px;
   border-radius: 12px; border: 1px solid var(--border);
@@ -227,7 +250,7 @@ body::after{
   background: var(--surface); border: 1px solid var(--border);
   font-size: 0.72em; color: var(--muted);
 }
-.filter-bar{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:14px; }
+.filter-bar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
 .filter-btn, .settings-btn{
   background: var(--surface); border:1px solid var(--border);
   color: var(--muted); padding:7px 13px; border-radius:10px;
@@ -240,25 +263,13 @@ body::after{
   border-color: rgba(var(--primary-rgb),0.45);
   color: #d4c4ff;
 }
-.game-count{ font-size:0.8em; color:var(--muted); margin-bottom:12px; font-weight:600; }
-.continue-section{ margin-bottom:20px; }
+.game-count{ font-size:0.78em; color:var(--muted); font-weight:600; }
 .section-title{ font-size:0.9em; font-weight:700; margin-bottom:10px; color: var(--muted); }
-.continue-row{ display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; }
-.continue-card{
-  flex:0 0 100px; background:var(--surface); border:1px solid var(--border);
-  border-radius:12px; overflow:hidden; text-decoration:none; color:inherit;
-  transition: border-color .2s, transform .2s;
-}
-.continue-card:hover{ transform:translateY(-3px); border-color:rgba(var(--primary-rgb),0.4); }
-.continue-card img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; }
-.continue-card .c-title{
-  padding:5px 7px; font-size:0.68em; font-weight:600; color:var(--muted);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
 .games-grid{
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(var(--card-min,150px),1fr));
-  gap:14px;
+  gap:16px;
+  align-items:start;
 }
 .game-card{
   background: var(--surface); border:1px solid var(--border);
@@ -335,6 +346,25 @@ body::after{
 }
 .apps-dropdown button:hover{ background:rgba(var(--primary-rgb),0.12); color:var(--primary); }
 
+.source-wrap{ position:relative; }
+.source-dropdown{
+  display:none; position:absolute; right:0; top:calc(100% + 8px);
+  min-width:160px; background:rgba(12,12,20,0.97);
+  border:1px solid var(--border); border-radius:14px; padding:6px;
+  box-shadow:0 16px 40px rgba(0,0,0,0.5); z-index:200;
+}
+.source-dropdown.open{ display:block; }
+.source-dropdown button{
+  display:flex; width:100%; padding:11px 13px; border:none; border-radius:10px;
+  background:transparent; color:var(--text); font-size:0.88em; font-weight:600;
+  cursor:pointer; text-align:left; font-family:inherit;
+}
+.source-dropdown button:hover{ background:rgba(var(--primary-rgb),0.12); color:var(--primary); }
+.source-dropdown button.active{
+  background: rgba(var(--primary-rgb),0.18);
+  color: #d4c4ff;
+}
+
 .level-float{
   position:fixed; top:18px; left:18px; z-index:90;
   padding:8px 14px; border-radius:12px;
@@ -346,6 +376,8 @@ body::after{
   position:fixed; bottom:22px; right:18px; z-index:90;
   font-size:0.72em; color:rgba(255,255,255,0.25); font-variant-numeric:tabular-nums;
 }
+.clock-float.hidden{ display:none; }
+
 
 #gameModal,#linksModal{
   display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95);
@@ -504,6 +536,29 @@ header{ display:none !important; }
   100% { transform: scale(1); filter: drop-shadow(0 0 20px rgba(var(--primary-rgb),0.35)); }
 }
 .welcome { cursor: default; }
+/* HOME-ONLY CUSTOM WALLPAPER LAYER (unlocked at level 2) */
+#viewHome{ z-index: 2; }
+#homeWallpaper{
+  position: fixed; inset: 0; z-index: 1;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  display: none;
+  pointer-events: none;
+}
+#homeWallpaper.active{ display: block; }
+#homeWallpaper::after{
+  content:""; position:absolute; inset:0;
+  background: rgba(0,0,0,0.45);
+}
+#viewHome > *{ position: relative; z-index: 2; }
+.locked-note{ font-size:0.78em; color:var(--muted); margin-top:6px; line-height:1.45; }
+@media(max-width:700px){
+  #viewGames{ padding: 16px 16px 110px; }
+  .games-header{ align-items: flex-start; }
+  .games-search{ width: 100%; }
+  .games-panel{ padding: 12px; }
+}
 .welcome .welcome-brand { cursor: pointer; }
 </style></head>
 <body>
@@ -533,19 +588,19 @@ header{ display:none !important; }
 <nav class="rail" id="rail">
   <button type="button" class="rail-btn active" data-view="home" id="railHome">Home</button>
   <button type="button" class="rail-btn" data-view="games" id="railGames">Games</button>
-  <button type="button" class="rail-btn" id="railProxyBtn" onclick="openProxy()">Proxy</button>
+  <button type="button" class="rail-btn" id="railProxyBtn" onclick="openProxy()">Browser</button>
   <button type="button" class="rail-btn" id="appsBtn">Apps</button>
   <div class="apps-dropdown" id="appsDropdown">
     <button type="button" onclick="openApp('Axiom AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html'); closeAppsDropdown();">Axiom AI</button>
     <button type="button" onclick="openApp('Movies', 'https://cinera.cc/'); closeAppsDropdown();">Movies</button>
     <button type="button" onclick="openLinksModal(); closeAppsDropdown();">Links</button>
   </div>
-  <button type="button" class="rail-btn" id="randomGameBtn">Random</button>
   <button type="button" class="rail-btn" id="railDiscordBtn" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer')">Discord</button>
   <button type="button" class="rail-btn" id="openSettings">Settings</button>
 </nav>
 
-<!-- HOME / PROXY -->
+<!-- HOME -->
+<div id="homeWallpaper" aria-hidden="true"></div>
 <section class="view active" id="viewHome">
   <h1 class="welcome" id="welcomeLogo" title="Click for sound">
     Welcome to<br>
@@ -554,29 +609,43 @@ header{ display:none !important; }
   <div class="proxy-search-wrap">
     <input type="text" id="homeProxyInput" placeholder="Type a URL or search the web…" autocomplete="off" spellcheck="false">
   </div>
-  <p class="proxy-hint">Enter to open proxy</p>
 </section>
 
 <!-- GAMES LIBRARY -->
 <section class="view" id="viewGames">
-  <div class="games-top">
-    <h1>Library</h1>
-    <div class="games-search">
-      <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
-      <button type="button" class="clear-search-btn" id="clearSearchBtn">×</button>
+  <div class="games-header">
+    <div class="games-heading">
+      <h1>Library</h1>
+      <span class="status-chip" id="statusLine">Loading...</span>
     </div>
-    <span class="status-chip" id="statusLine">Loading...</span>
-  </div>
-  <div class="continue-section" id="continueSection" style="display:none;">
-    <div class="section-title">Continue Playing</div>
-    <div class="continue-row" id="continueRow"></div>
+    <div class="games-tools">
+      <div class="games-search">
+        <input type="text" id="searchInput" placeholder="Search games…" autocomplete="off">
+        <button type="button" class="clear-search-btn" id="clearSearchBtn">×</button>
+      </div>
+      <button type="button" class="tool-btn" id="randomGameBtn">Random Game</button>
+      <div class="source-wrap">
+        <button type="button" class="tool-btn" id="sourceBtn">Game Sources</button>
+        <div class="source-dropdown" id="sourceDropdown">
+          <button type="button" data-source="all" class="active">All</button>
+          <button type="button" data-source="axiom">Axiom</button>
+          <button type="button" data-source="gnmath">GN Math</button>
+          <button type="button" data-source="noah">Noah's Hub</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="filter-bar" id="filterBar"></div>
-  <div id="gameCount" class="game-count">- Games</div>
-  <div class="games-grid" id="gamesGrid">
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <div>Loading...</div>
+  <div class="games-panel">
+    <div class="games-panel-head">
+      <span class="section-title">All Games</span>
+      <span id="gameCount" class="game-count">- Games</span>
+    </div>
+    <div class="games-grid" id="gamesGrid">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <div>Loading...</div>
+      </div>
     </div>
   </div>
 </section>
@@ -646,6 +715,29 @@ header{ display:none !important; }
 <aside class="settings-panel" id="settingsPanel">
  <h2>Settings</h2>
 
+ <!-- HOME WALLPAPER (LEVEL 2+) -->
+ <div class="settings-group" id="homeWallpaperGroup">
+ <label>Home Wallpaper <span id="homeWpLockTag" style="color:var(--muted);"></span></label>
+ <input type="file" id="setHomeWallpaperFile" accept="image/*" style="font-size:0.85em;color:var(--muted);width:100%;">
+ <div style="display:flex;gap:10px;margin-top:10px;">
+ <button type="button" class="data-btn" id="clearHomeWallpaper" style="flex:1;">Clear</button>
+ </div>
+ <p class="locked-note" id="homeWpNote">
+ Upload any image. It only changes the Home screen background.
+ </p>
+ </div>
+
+ <!-- LEAVE CONFIRMATION -->
+ <div class="settings-group">
+ <label class="settings-row">
+ <span>Confirm before closing a game</span>
+ <input type="checkbox" id="setConfirmClose">
+ </label>
+ <p class="locked-note">
+ When on, pressing Close asks "are you sure?". Opening games never asks.
+ </p>
+ </div>
+
  <!-- WALLPAPER SELECTION -->
  <div class="settings-group">
  <label>Wallpaper Preset</label>
@@ -678,6 +770,24 @@ header{ display:none !important; }
  When enabled, games and apps launch in a new unblocked about:blank tab.
  </p>
  <button type="button" class="data-btn" id="openSiteAboutBlankSettings" style="width:100%;margin-top:10px;">Launch Site in about:blank</button>
+ <label class="settings-row" style="margin-top:12px;">
+ <span>Auto About:Blank</span>
+ <input type="checkbox" id="setAutoAboutBlank">
+ </label>
+ <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
+ When on, the site automatically re-opens itself inside an about:blank tab every time you load it. Turn it off to stop that.
+ </p>
+ </div>
+
+ <!-- TAB CLOSE PREVENTION -->
+ <div class="settings-group">
+ <label class="settings-row">
+ <span>Warn before closing the tab</span>
+ <input type="checkbox" id="setConfirmTabClose">
+ </label>
+ <p class="locked-note">
+ Shows the browser's "leave site?" warning when you close or reload the tab. Closing a game or navigating inside the site never warns.
+ </p>
  </div>
 
  <div class="settings-group">
@@ -834,7 +944,11 @@ const DEFAULTS = {
  wallpaper: 'none',
  panicUrl: 'https://www.google.com',
  logoFx: true,
- disableLogoAudio: false
+ disableLogoAudio: false,
+ homeWallpaper: '',
+ confirmOnClose: true,
+ confirmTabClose: false,
+ autoAboutBlank: false
 };
 
 const WALLPAPERS = {
@@ -842,7 +956,7 @@ const WALLPAPERS = {
  'neon-mesh': 'radial-gradient(at 0% 0%, hsla(160,100%,30%,0.2) 0px, transparent 50%), radial-gradient(at 100% 100%, hsla(240,100%,25%,0.3) 0px, transparent 50%), radial-gradient(at 50% 50%, hsla(180,100%,15%,0.2) 0px, transparent 50%)',
  'cosmos': 'radial-gradient(circle at 50% 30%, rgba(80,0,120,0.35), transparent 70%), radial-gradient(circle at 20% 80%, rgba(0,40,100,0.4), transparent 60%)',
  'cyber': 'linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px)',
- 'synthwave': 'linear-gradient(to bottom, #10002b 0%, #240046 40%, #5a189a 70%, #ff6b6b 100%)',
+ 'synthwave': 'linear-gradient(to bottom, #2b1055 0%, #6d28d9 32%, #c026d3 58%, #fb7185 80%, #fbbf24 100%)',
  'minimal-dark': 'radial-gradient(circle, #151d2a 0%, #05080f 100%)'
 };
 
@@ -851,6 +965,7 @@ let allGames = [];
 let currentBlobUrl = null;
 let cloakInterval = null;
 let currentFilter = 'all';
+let currentSource = 'all';
 
 /* ===== PLAYER DATA (favorites, recent, XP) ===== */
 function loadPlayerData() {
@@ -933,6 +1048,8 @@ function updateStatsUI() {
  if (pPlays) pPlays.textContent = player.plays || 0;
  if (pFavs) pFavs.textContent = (player.favorites || []).length;
  if (pAchs) pAchs.textContent = (player.achievements || []).length;
+ if (typeof refreshHomeWallpaperUI === 'function') refreshHomeWallpaperUI();
+ if (typeof applyHomeWallpaper === 'function') applyHomeWallpaper();
 }
 
 function openLevelPanel() {
@@ -991,32 +1108,9 @@ function addToRecent(game) {
  player.plays = (player.plays || 0) + 1;
  savePlayerData();
  updateStatsUI();
- renderContinuePlaying();
  checkAchievements();
 }
 
-function renderContinuePlaying() {
- const section = document.getElementById('continueSection');
- const row = document.getElementById('continueRow');
- if (!section || !row) return;
- if (!player.recent || player.recent.length === 0) {
- section.style.display = 'none';
- return;
- }
- section.style.display = 'block';
- row.innerHTML = '';
- player.recent.slice(0, 8).forEach(g => {
- const card = document.createElement('a');
- card.href = '#';
- card.className = 'continue-card';
- card.innerHTML = `
- <img src="${g.resolvedCover || ''}" alt="${g.name}" loading="lazy"
- onerror="this.style.display='none';">
- <div class="c-title">${g.name}</div>`;
- card.onclick = e => { e.preventDefault(); openGame(g); };
- row.appendChild(card);
- });
-}
 
 const gamesGrid = document.getElementById('gamesGrid');
 const gameCountEl = document.getElementById('gameCount');
@@ -1268,6 +1362,42 @@ function applyCloaking() {
  }
 }
 
+/* ===== HOME-ONLY CUSTOM WALLPAPER (unlocked at level 2) ===== */
+function homeWallpaperUnlocked() {
+ return getLevel(player.xp || 0) >= 2;
+}
+function applyHomeWallpaper() {
+ const layer = document.getElementById('homeWallpaper');
+ if (!layer) return;
+ const url = (settings.homeWallpaper || '').trim();
+ const home = document.getElementById('viewHome');
+ const onHome = !home || home.classList.contains('active');
+ if (url && onHome && homeWallpaperUnlocked()) {
+ layer.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")';
+ layer.classList.add('active');
+ } else {
+ layer.style.backgroundImage = 'none';
+ layer.classList.remove('active');
+ }
+}
+function refreshHomeWallpaperUI() {
+ const input = document.getElementById('setHomeWallpaperFile');
+ const tag = document.getElementById('homeWpLockTag');
+ const note = document.getElementById('homeWpNote');
+ const clearBtn = document.getElementById('clearHomeWallpaper');
+ const unlocked = homeWallpaperUnlocked();
+ if (input) {
+ input.disabled = !unlocked;
+ }
+ if (clearBtn) clearBtn.disabled = !unlocked;
+ if (tag) tag.textContent = unlocked ? '' : '(Level 2)';
+ if (note) {
+ note.textContent = unlocked
+ ? (settings.homeWallpaper ? 'Wallpaper set. Upload another image to change it.' : 'Upload any image. It only changes the Home screen background.')
+ : 'Unlocks at Level 2. Play a few games to level up, then set any wallpaper you want for Home.';
+ }
+}
+
 function applySettings() {
  const root = document.documentElement;
  root.style.setProperty('--primary', settings.primary);
@@ -1285,9 +1415,22 @@ function applySettings() {
  const selectedWallpaper = settings.wallpaper && WALLPAPERS[settings.wallpaper] ? WALLPAPERS[settings.wallpaper] : '';
  if (selectedWallpaper) {
  document.body.style.backgroundImage = selectedWallpaper;
+ // fix: tiled/repeating backgrounds. Cyber grid is the only intentional tile.
+ if (settings.wallpaper === 'cyber') {
+ document.body.style.backgroundRepeat = 'repeat';
+ document.body.style.backgroundSize = '40px 40px';
+ } else {
+ document.body.style.backgroundRepeat = 'no-repeat';
+ document.body.style.backgroundSize = 'cover';
+ }
+ document.body.style.backgroundPosition = 'center center';
+ document.body.style.backgroundAttachment = 'fixed';
  } else {
  document.body.style.backgroundImage = 'none';
+ document.body.style.backgroundRepeat = 'no-repeat';
+ document.body.style.backgroundSize = 'cover';
  }
+ applyHomeWallpaper();
 
  document.body.style.backgroundColor = settings.bg;
  document.body.classList.toggle('reduced-motion', settings.reducedMotion);
@@ -1373,14 +1516,7 @@ function renderGames(list) {
 function buildFilterBar() {
  const filters = [
  { id: 'all', label: 'All' },
- { id: 'favorites', label: 'Favorites' },
- { id: 'axiom', label: 'Axiom' },
- { id: 'gnmath', label: 'GN Math' },
- { id: 'noah', label: "Noah's Hub" },
- { id: 'flash', label: 'Flash' },
- { id: 'port', label: 'Ports' },
- { id: 'emulator', label: 'Emulator' },
- { id: 'fnf', label: 'FNF' }
+ { id: 'favorites', label: 'Favorites' }
  ];
  filterBar.innerHTML = '';
  filters.forEach(f => {
@@ -1405,14 +1541,10 @@ function handleSearch() {
 
  if (currentFilter === 'favorites') {
  results = results.filter(g => isFavorite(g));
- } else if (currentFilter === 'axiom') {
- results = results.filter(g => g.source === 'axiom');
- } else if (currentFilter === 'gnmath') {
- results = results.filter(g => g.source === 'gnmath');
- } else if (currentFilter === 'noah') {
- results = results.filter(g => g.source === 'noah');
- } else if (['flash', 'port', 'emulator', 'fnf'].includes(currentFilter)) {
- results = results.filter(g => Array.isArray(g.special) && g.special.includes(currentFilter));
+ }
+
+ if (currentSource !== 'all') {
+ results = results.filter(g => (g.source || 'axiom') === currentSource);
  }
 
  if (query) {
@@ -1528,12 +1660,9 @@ async function loadAllSources() {
  localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
  } catch (_) {}
 
- const uCount = allGames.filter(g => g.source === 'axiom').length;
- const gCount = allGames.filter(g => g.source === 'gnmath').length;
- const nCount = allGames.filter(g => g.source === 'noah').length;
  statusLine.textContent = settings.stealth
  ? `${allGames.length} resources`
- : `${allGames.length} games · ${uCount} Axiom · ${gCount} GN · ${nCount} Noah`;
+ : `${allGames.length} games ready`;
 
  buildFilterBar();
  handleSearch();
@@ -1554,7 +1683,6 @@ function hideModalError() {
 function getCloakingScript() {
  return `<script>
  (function(){
- window.onbeforeunload = function(){ return "Stay on this page"; };
  window.open = function(){ return null; };
  const killAds = function(){
  document.querySelectorAll('.ad,.ads,.adsbygoogle,.banner-ads,[id^="ad-"],iframe[src*="doubleclick"],iframe[src*="googleads"]').forEach(el => el.remove());
@@ -1569,6 +1697,8 @@ let activeSessionName = null;
 let activeSessionUrl = null;
 
 function confirmLeaveProgress(actionLabel) {
+ // Only the Close button asks, and only when the setting is enabled.
+ if (settings.confirmOnClose === false) return true;
  if (gameModal.style.display !== 'flex' || !activeSessionName) return true;
  return confirm(
  'You might lose your progress if you ' + actionLabel + '.\n\n' +
@@ -1670,7 +1800,6 @@ function navigateProxy(raw) {
 }
 
 function openProxy(initialUrl) {
-  if (!confirmLeaveProgress('open the proxy')) return;
   proxyMode = true;
   activeSessionName = 'Proxy';
   activeSessionUrl = null;
@@ -1698,7 +1827,6 @@ function openProxy(initialUrl) {
 }
 
 function openGame(game) {
- if (!confirmLeaveProgress('switch games')) return;
  proxyMode = false;
  showProxyBar(false);
  addToRecent(game);
@@ -1710,7 +1838,6 @@ function openGame(game) {
 }
 
 function openApp(name, url) {
- if (!confirmLeaveProgress('open another app')) return;
  proxyMode = false;
  showProxyBar(false);
  if (settings.openAboutBlank) {
@@ -1932,12 +2059,9 @@ function importDataFromObject(obj) {
  try {
  localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
  } catch (_) {}
- const uCount = allGames.filter(g => g.source === 'axiom').length;
- const gCount = allGames.filter(g => g.source === 'gnmath').length;
- const nCount = allGames.filter(g => g.source === 'noah').length;
  statusLine.textContent = settings.stealth
  ? `${allGames.length} resources`
- : `${allGames.length} games · ${uCount} Axiom · ${gCount} GN · ${nCount} Noah`;
+ : `${allGames.length} games ready`;
  buildFilterBar();
  handleSearch();
  }
@@ -1960,12 +2084,44 @@ function handleImportFile(file) {
  reader.readAsText(file);
 }
 
+/* ===== TAB CLOSE PREVENTION ===== */
+window.__allowUnload = false;
+function _beforeUnloadHandler(e) {
+ if (window.__allowUnload) return;
+ e.preventDefault();
+ e.returnValue = '';
+ return '';
+}
+function applyTabCloseGuard() {
+ window.removeEventListener('beforeunload', _beforeUnloadHandler);
+ if (settings.confirmTabClose) window.addEventListener('beforeunload', _beforeUnloadHandler);
+}
+
+function isAboutBlankClone() {
+ try {
+ return location.protocol === 'about:' || location.href === 'about:blank' || !!window.__isAboutBlankClone;
+ } catch (_) { return false; }
+}
+
+function maybeAutoAboutBlank() {
+ if (!settings.autoAboutBlank) return;
+ if (isAboutBlankClone()) return;
+ if (sessionStorage.getItem('axiomAutoAB') === '1') return;
+ try { sessionStorage.setItem('axiomAutoAB', '1'); } catch (_) {}
+ const win = openSiteInAboutBlank();
+ if (win) {
+ window.__allowUnload = true;
+ try { document.body.innerHTML = '<div style="font:16px system-ui;color:#fff;padding:40px;text-align:center;">Opened in a new about:blank tab. You can close this tab.<br><br><button onclick="location.reload()" style="margin-top:14px;padding:10px 18px;border-radius:10px;border:0;cursor:pointer;">Reload here instead</button></div>'; } catch (_) {}
+ }
+}
+
 function openSiteInAboutBlank() {
  let html = document.documentElement.outerHTML;
+ html = html.replace('<head>', '<head><script>window.__isAboutBlankClone = true;<\/script>');
  const win = window.open('about:blank', '_blank');
  if (!win) {
  alert('Popup blocked. Allow popups for this site.');
- return;
+ return null;
  }
  try {
  win.document.open();
@@ -1974,9 +2130,11 @@ function openSiteInAboutBlank() {
  try {
  win.document.title = settings.stealth ? document.title : 'Axiom';
  } catch (_) {}
+ return win;
  } catch (e) {
  console.warn(e);
  alert('Could not write to about:blank window.');
+ return null;
  }
 }
 
@@ -2004,6 +2162,13 @@ function openSettings() {
  if (cloakIconEl) cloakIconEl.value = settings.cloakIcon || '';
  document.getElementById('setOpenAboutBlank').checked = !!settings.openAboutBlank;
  document.getElementById('setWallpaper').value = settings.wallpaper || 'none';
+ const cc = document.getElementById('setConfirmClose');
+ if (cc) cc.checked = settings.confirmOnClose !== false;
+ const ctc = document.getElementById('setConfirmTabClose');
+ if (ctc) ctc.checked = !!settings.confirmTabClose;
+ const aab = document.getElementById('setAutoAboutBlank');
+ if (aab) aab.checked = !!settings.autoAboutBlank;
+ refreshHomeWallpaperUI();
  document.getElementById('setPanicUrl').value = settings.panicUrl || 'https://www.google.com';
  applySettings();
  panel.classList.add('open');
@@ -2019,8 +2184,9 @@ document.getElementById('openSettings').onclick = openSettings;
 document.getElementById('closeSettings').onclick = closeSettings;
 overlay.onclick = closeSettings;
 
-document.getElementById('randomGameBtn').onclick = () => {
- if (!allGames.length) return;
+const randomGameBtn = document.getElementById('randomGameBtn');
+if (randomGameBtn) randomGameBtn.onclick = () => {
+ if (!allGames.length) { showToast('Games are still loading'); return; }
  const g = allGames[Math.floor(Math.random() * allGames.length)];
  openGame(g);
 };
@@ -2053,6 +2219,32 @@ function exportFavoritesOnly() {
 }
 const exportFavBtn = document.getElementById('exportFavBtn');
 if (exportFavBtn) exportFavBtn.onclick = exportFavoritesOnly;
+
+/* ========== GAME SOURCES DROPDOWN ========== */
+const sourceBtn = document.getElementById('sourceBtn');
+const sourceDropdown = document.getElementById('sourceDropdown');
+function closeSourceDropdown() {
+ if (sourceDropdown) sourceDropdown.classList.remove('open');
+}
+if (sourceBtn && sourceDropdown) {
+ sourceBtn.onclick = (e) => {
+ e.stopPropagation();
+ sourceDropdown.classList.toggle('open');
+ };
+ sourceDropdown.querySelectorAll('button[data-source]').forEach(btn => {
+ btn.onclick = () => {
+ currentSource = btn.dataset.source;
+ sourceDropdown.querySelectorAll('button[data-source]').forEach(b => b.classList.toggle('active', b === btn));
+ closeSourceDropdown();
+ handleSearch();
+ };
+ });
+ document.addEventListener('click', (e) => {
+ if (!sourceDropdown.contains(e.target) && e.target !== sourceBtn) {
+ closeSourceDropdown();
+ }
+ });
+}
 
 /* ========== APPS DROPDOWN ========== */
 const appsBtn = document.getElementById('appsBtn');
@@ -2110,6 +2302,37 @@ if (cloakIconInput) {
 document.getElementById('setOpenAboutBlank').onchange = e => { settings.openAboutBlank = e.target.checked; saveSettings(); };
 document.getElementById('setWallpaper').onchange = e => { settings.wallpaper = e.target.value; applySettings(); saveSettings(); };
 document.getElementById('setPanicUrl').oninput = e => { settings.panicUrl = e.target.value; saveSettings(); };
+const confirmCloseEl = document.getElementById('setConfirmClose');
+if (confirmCloseEl) confirmCloseEl.onchange = e => { settings.confirmOnClose = e.target.checked; saveSettings(); };
+const confirmTabCloseEl = document.getElementById('setConfirmTabClose');
+if (confirmTabCloseEl) confirmTabCloseEl.onchange = e => { settings.confirmTabClose = e.target.checked; saveSettings(); applyTabCloseGuard(); };
+const autoAbEl = document.getElementById('setAutoAboutBlank');
+if (autoAbEl) autoAbEl.onchange = e => { settings.autoAboutBlank = e.target.checked; saveSettings(); };
+const homeWpFileInput = document.getElementById('setHomeWallpaperFile');
+const homeWpClear = document.getElementById('clearHomeWallpaper');
+if (homeWpFileInput) homeWpFileInput.onchange = () => {
+ if (!homeWallpaperUnlocked()) { showToast('Home wallpaper unlocks at Level 2'); homeWpFileInput.value = ''; return; }
+ const file = homeWpFileInput.files && homeWpFileInput.files[0];
+ if (!file) return;
+ if (!file.type.startsWith('image/')) { showToast('Please choose an image file'); homeWpFileInput.value = ''; return; }
+ if (file.size > 3 * 1024 * 1024) { showToast('Image too large (max 3 MB)'); homeWpFileInput.value = ''; return; }
+ const reader = new FileReader();
+ reader.onload = () => {
+ settings.homeWallpaper = String(reader.result || '');
+ saveSettings();
+ applyHomeWallpaper();
+ refreshHomeWallpaperUI();
+ showToast('Home wallpaper applied');
+ };
+ reader.readAsDataURL(file);
+ homeWpFileInput.value = '';
+};
+if (homeWpClear) homeWpClear.onclick = () => {
+ settings.homeWallpaper = '';
+ saveSettings();
+ applyHomeWallpaper();
+ refreshHomeWallpaperUI();
+};
 
 document.getElementById('resetSettings').onclick = () => {
  settings = { ...DEFAULTS };
@@ -2135,12 +2358,14 @@ document.addEventListener('keydown', e => {
  if (!url.startsWith('http://') && !url.startsWith('https://')) {
  url = 'https://' + url;
  }
+ window.__allowUnload = true;
  window.location.href = url;
  return;
  }
  if (e.key === 'Escape') {
  const levelOv = document.getElementById('levelOverlay');
  if (levelOv && levelOv.classList.contains('show')) closeLevelPanel();
+ else if (sourceDropdown && sourceDropdown.classList.contains('open')) closeSourceDropdown();
  else if (appsDropdown && appsDropdown.classList.contains('open')) closeAppsDropdown();
  else if (panel.classList.contains('open')) closeSettings();
  else if (linksModal && linksModal.style.display === 'flex') closeLinksModal();
@@ -2235,11 +2460,15 @@ function showView(name) {
   document.querySelectorAll('.rail-btn[data-view]').forEach(b => {
     b.classList.toggle('active', b.dataset.view === name);
   });
+  const clockFloat = document.querySelector('.clock-float');
+  if (clockFloat) clockFloat.classList.toggle('hidden', name !== 'home');
+  if (typeof applyHomeWallpaper === 'function') applyHomeWallpaper();
   if (name === 'home') {
     const inp = document.getElementById('homeProxyInput');
     if (inp) setTimeout(() => inp.focus(), 50);
   }
 }
+
 (function wireRailAndHomeProxy() {
   document.querySelectorAll('.rail-btn[data-view]').forEach(btn => {
     btn.addEventListener('click', () => showView(btn.dataset.view));
@@ -2256,20 +2485,18 @@ function showView(name) {
     });
   }
 
-  const rnd = document.getElementById('randomGameBtn');
-  if (rnd) {
-    const old = rnd.onclick;
-    rnd.addEventListener('click', () => showView('games'), true);
-  }
 })();
 
 applySettings();
+applyTabCloseGuard();
+maybeAutoAboutBlank();
+showView('home');
 updateClock();
 setInterval(updateClock, 1000);
 
+
 window.addEventListener('load', () => {
  updateStatsUI();
- renderContinuePlaying();
  loadAllSources();
  fetchUserWeather();
 });
