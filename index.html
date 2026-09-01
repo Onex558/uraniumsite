@@ -4194,5 +4194,75 @@ function logoClicked() {
 })();
 </script>
 
+
+<script>
+/* Axiom one-file account persistence + profile customization.
+   Everything is kept in this index.html using localStorage. */
+(function(){
+  'use strict';
+  const PROFILE_PREFIX='axiomProfile_';
+  const BACKUP_PREFIX='axiomAllData_';
+  const RESERVED=new Set(['axiomAccounts','axiomSession','axiomChatCache']);
+  const $=id=>document.getElementById(id);
+  const esc=x=>String(x??'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]));
+  function session(){try{return JSON.parse(localStorage.getItem('axiomSession')||'null')}catch(e){return null}}
+  function key(u){return BACKUP_PREFIX+String(u||'').toLowerCase()}
+  function profileKey(u){return PROFILE_PREFIX+String(u||'').toLowerCase()}
+  function saveEverything(u){
+    if(!u)return;
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k||RESERVED.has(k)||k.startsWith(BACKUP_PREFIX)||k.startsWith(PROFILE_PREFIX))continue;
+      try{data[k]=localStorage.getItem(k)}catch(e){}
+    }
+    try{localStorage.setItem(key(u),JSON.stringify(data))}catch(e){}
+  }
+  function restoreEverything(u){
+    if(!u)return;
+    let data={};
+    try{data=JSON.parse(localStorage.getItem(key(u))||'{}')||{}}catch(e){}
+    Object.keys(data).forEach(k=>{try{localStorage.setItem(k,data[k])}catch(e){}});
+  }
+  function getProfile(u){
+    try{return Object.assign({username:u,displayName:u,avatar:'',bio:'',status:'Online'},JSON.parse(localStorage.getItem(profileKey(u))||'{}'))}catch(e){return {username:u,displayName:u,avatar:'',bio:'',status:'Online'}}
+  }
+  function saveProfile(p){try{localStorage.setItem(profileKey(p.username),JSON.stringify(p))}catch(e){}}
+  function toast(m){if(typeof showToast==='function')showToast(m);else console.log(m)}
+  function openProfile(){
+    const s=session(); if(!s||!s.username){if(window.axiomOpenAuth)window.axiomOpenAuth();return}
+    let m=$('axiomProfileModal');
+    const p=getProfile(s.username);
+    if(!m){
+      m=document.createElement('div');m.id='axiomProfileModal';m.style.cssText='display:none;position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px';
+      m.innerHTML=`<div style="width:min(430px,100%);background:#0d0d16;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:22px;box-shadow:0 20px 70px #000">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">Customize account</h2><button id="axPclose" style="background:none;border:0;color:#aaa;font-size:22px;cursor:pointer">✕</button></div>
+        <p id="axPuser" style="color:#8b6cff;margin:7px 0 18px"></p>
+        <label style="display:block;margin:10px 0 5px;color:#aaa">Display name</label><input id="axPname" maxlength="40" style="width:100%;box-sizing:border-box;padding:11px;border-radius:10px;background:#05050a;color:#fff;border:1px solid #292936">
+        <label style="display:block;margin:10px 0 5px;color:#aaa">Avatar URL</label><input id="axPavatar" maxlength="1000" placeholder="https://..." style="width:100%;box-sizing:border-box;padding:11px;border-radius:10px;background:#05050a;color:#fff;border:1px solid #292936">
+        <label style="display:block;margin:10px 0 5px;color:#aaa">Status</label><input id="axPstatus" maxlength="40" style="width:100%;box-sizing:border-box;padding:11px;border-radius:10px;background:#05050a;color:#fff;border:1px solid #292936">
+        <label style="display:block;margin:10px 0 5px;color:#aaa">Bio</label><textarea id="axPbio" maxlength="300" rows="4" style="width:100%;box-sizing:border-box;padding:11px;border-radius:10px;background:#05050a;color:#fff;border:1px solid #292936;resize:vertical"></textarea>
+        <div style="display:flex;gap:9px;margin-top:16px"><button id="axPsave" style="flex:1;padding:12px;border:0;border-radius:10px;background:#8b6cff;color:white;font-weight:800;cursor:pointer">Save changes</button><button id="axPlogout" style="padding:12px;border:1px solid #333;border-radius:10px;background:#15151e;color:#fff;cursor:pointer">Log out</button></div>
+      </div>`;document.body.appendChild(m);
+      $('axPclose').onclick=()=>m.style.display='none';m.onclick=e=>{if(e.target===m)m.style.display='none'};
+      $('axPsave').onclick=()=>{const u=session()?.username;if(!u)return;saveEverything(u);saveProfile({username:u,displayName:$('axPname').value.trim()||u,avatar:$('axPavatar').value.trim(),status:$('axPstatus').value.trim()||'Online',bio:$('axPbio').value.trim()});m.style.display='none';updateAccountButton();toast('Account saved');};
+      $('axPlogout').onclick=()=>{saveEverything(session()?.username);m.style.display='none';if(window.axiomLogout)window.axiomLogout();else{localStorage.removeItem('axiomSession');location.reload()}};
+    }
+    const q=getProfile(s.username);$('axPuser').textContent='@'+s.username;$('axPname').value=q.displayName;$('axPavatar').value=q.avatar;$('axPstatus').value=q.status;$('axPbio').value=q.bio;m.style.display='flex';
+  }
+  function updateAccountButton(){
+    const s=session();const p=s?getProfile(s.username):null;const a=$('railAccount');if(a)a.textContent=s?'@'+(p.displayName||s.username):'Account';
+  }
+  function hook(){
+    updateAccountButton();
+    const a=$('railAccount');if(a&&!a.dataset.profileHook){a.dataset.profileHook='1';a.onclick=openProfile}
+    const s=session();if(s&&s.username){restoreEverything(s.username);updateAccountButton()}
+  }
+  // Save the account's entire local app state periodically and before leaving.
+  setInterval(()=>{const s=session();if(s?.username)saveEverything(s.username)},3000);
+  window.addEventListener('beforeunload',()=>{const s=session();if(s?.username)saveEverything(s.username)});
+  setTimeout(hook,500);setTimeout(hook,1500);setTimeout(hook,3000);
+})();
+</script>
 </body>
 </html>
