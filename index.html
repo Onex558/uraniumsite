@@ -64,7 +64,7 @@ body::after{
   pointer-events:none;
 }
 
-/* LEFT text rail â separate word buttons, no emojis */
+/* LEFT text rail - separate word buttons, no emojis */
 .rail{
   position: fixed;
   left: 14px;
@@ -500,7 +500,7 @@ body::after{
 #gameModal.proxy-mode:fullscreen #gameFrame{ height:calc(100vh - 130px); margin-top:130px; }
 #gameModal.music-mode #gameFrame{ width:100vw; height:100vh; max-width:none; max-height:none; margin-top:0; border:none; border-radius:0; background:#000; }
 
-/* Music mode: no address bar, no bookmarks, no tabs, no home screen â just the player */
+/* Music mode: no address bar, no bookmarks, no tabs, no home screen - just the player */
 #gameModal.music-mode .proxy-bar,
 #gameModal.music-mode .proxy-bookmarks,
 #gameModal.music-mode .proxy-tabs,
@@ -543,7 +543,7 @@ body::after{
   opacity:0; pointer-events:none; overflow:hidden;
 }
 
-/* Floating "now playing" pill â reopen the background player */
+/* Floating "now playing" pill - reopen the background player */
 .music-pill{
   display:none;
   position:fixed; bottom:22px; left:18px; z-index:9998;
@@ -731,7 +731,7 @@ header{ display:none !important; }
 <!-- online user counter (top-right corner) -->
 <div class="online-float" id="onlineFloat" title="Users online right now">
   <span class="online-dot" id="onlineDot"></span>
-  <span id="onlineCount">â online</span>
+  <span id="onlineCount">- online</span>
 </div>
 
 <!-- level/xp removed -->
@@ -745,7 +745,7 @@ header{ display:none !important; }
 <span id="mainTitle" class="sidebar-title">AXIOM</span>
 <p id="mainTagline" style="display:none">Play instantly. No limits.</p>
 
-<!-- NAV RAIL â text buttons, no emojis -->
+<!-- NAV RAIL - text buttons, no emojis -->
 <nav class="rail" id="rail">
   <button type="button" class="rail-btn active" data-view="home" id="railHome">Home</button>
   <button type="button" class="rail-btn" data-view="games" id="railGames">Games</button>
@@ -771,7 +771,7 @@ header{ display:none !important; }
     <span class="welcome-brand" id="axiomLogoText">Axiom</span>
   </h1>
   <div class="proxy-search-wrap">
-    <input type="text" id="homeProxyInput" placeholder="Type a URL or search the webâ¦" autocomplete="off" spellcheck="false">
+    <input type="text" id="homeProxyInput" placeholder="Type a URL or search the web..." autocomplete="off" spellcheck="false">
   </div>
 </section>
 
@@ -784,8 +784,8 @@ header{ display:none !important; }
     </div>
     <div class="games-tools">
       <div class="games-search">
-        <input type="text" id="searchInput" placeholder="Search gamesâ¦" autocomplete="off">
-        <button type="button" class="clear-search-btn" id="clearSearchBtn">Ã</button>
+        <input type="text" id="searchInput" placeholder="Search games..." autocomplete="off">
+        <button type="button" class="clear-search-btn" id="clearSearchBtn">x</button>
       </div>
       <button type="button" class="tool-btn" id="randomGameBtn">Random Game</button>
       <div class="source-wrap">
@@ -848,8 +848,8 @@ header{ display:none !important; }
 
  <!-- Minimal monochrome controls (music mode only) -->
  <div class="music-controls" id="musicControls">
-  <button type="button" id="musicBackBtn" title="Back to home â music keeps playing">â Home</button>
-  <button type="button" class="music-close-btn" id="musicCloseBtn" title="Stop music and close">â</button>
+  <button type="button" id="musicBackBtn" title="Back to home - music keeps playing">Home</button>
+  <button type="button" class="music-close-btn" id="musicCloseBtn" title="Stop music and close">Close</button>
  </div>
 
  <!-- Browser tabs (shown only in proxy mode) -->
@@ -861,11 +861,11 @@ header{ display:none !important; }
  <!-- Proxy address bar (shown only in proxy mode) -->
  <div class="proxy-bar" id="proxyBar">
   <div class="proxy-nav">
-   <button type="button" id="proxyBackBtn" title="Back">â</button>
-   <button type="button" id="proxyReloadBtn" title="Reload">â»</button>
-   <button type="button" id="proxyHomeBtn" title="Home">â</button>
+   <button type="button" id="proxyBackBtn" title="Back">Back</button>
+   <button type="button" id="proxyReloadBtn" title="Reload">Reload</button>
+   <button type="button" id="proxyHomeBtn" title="Home">Home</button>
   </div>
-  <input type="text" id="proxyAddress" placeholder="Search or enter URLâ¦" autocomplete="off" spellcheck="false">
+  <input type="text" id="proxyAddress" placeholder="Search or enter URL..." autocomplete="off" spellcheck="false">
   <button type="button" class="proxy-go" id="proxyGoBtn">Go</button>
   <div class="proxy-actions">
    <button class="modal-btn" id="proxyFullscreenBtn">Fullscreen</button>
@@ -874,7 +874,7 @@ header{ display:none !important; }
  </div>
  <!-- Bookmarks bar (browser only) -->
  <div class="proxy-bookmarks" id="proxyBookmarks">
-  <button type="button" class="bookmark-add" id="bookmarkAddBtn" title="Bookmark this page">â Add</button>
+  <button type="button" class="bookmark-add" id="bookmarkAddBtn" title="Bookmark this page">+ Add</button>
   <div id="bookmarkList" style="display:flex;align-items:center;gap:6px;"></div>
  </div>
 
@@ -903,10 +903,10 @@ header{ display:none !important; }
  </div>
 </div>
 
-<!-- Floating "now playing" pill â shown when music is minimized in the background -->
+<!-- Floating "now playing" pill - shown when music is minimized in the background -->
 <div class="music-pill" id="musicPill" title="Reopen player">
  <span class="music-pill-dot"></span>
- <span>Music playing â tap to reopen</span>
+ <span>Music playing - tap to reopen</span>
 </div>
 
 <!-- LINKS MODAL -->
@@ -963,9 +963,9 @@ header{ display:none !important; }
  <label>Panic Key Target URL</label>
  <input type="text" id="setPanicUrl" placeholder="https://classroom.google.com" value="https://www.google.com">
  <p style="font-size:0.78em;color:rgba(255,255,255,0.45);margin-top:6px;line-height:1.45;">
- <strong>`</strong> (backtick) â go to this site<br>
- <strong>Double-tap `</strong> â open in a new tab<br>
- <strong>Ctrl + `</strong> â hard panic (stronger redirect)
+ <strong>`</strong> (backtick) -> go to this site<br>
+ <strong>Double-tap `</strong> -> open in a new tab<br>
+ <strong>Ctrl + `</strong> -> hard panic (stronger redirect)
  </p>
  </div>
 
@@ -1245,13 +1245,13 @@ function toggleFavorite(game, btn) {
  player.favorites.splice(idx, 1);
  if (btn) {
  btn.classList.remove('favorited');
- btn.textContent = 'â';
+ btn.textContent = '*';
  }
  } else {
  player.favorites.push(key);
  if (btn) {
  btn.classList.add('favorited');
- btn.textContent = 'â';
+ btn.textContent = '*';
  }
  }
  savePlayerData();
@@ -1653,14 +1653,14 @@ function renderGames(list) {
  const srcLabel = src === 'gnmath' ? 'GN Math' : src === 'noah' ? "Noah's" : 'Axiom';
  const fav = isFavorite(game);
  const favClass = fav ? 'favorited' : '';
- const favIcon = fav ? 'â' : 'â';
+ const favIcon = fav ? '*' : '*';
  const safeName = (game.name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
  const safeAuthor = (game.author || 'Unknown').replace(/</g,'&lt;').replace(/>/g,'&gt;');
  card.innerHTML = `
  <div class="game-image">
  <button type="button" class="fav-btn ${favClass}" title="Favorite" aria-label="Favorite">${favIcon}</button>
  <span class="src-badge src-${src}">${srcLabel}</span>
- <div class="play-overlay"><span class="play-icon">â¶</span></div>
+ <div class="play-overlay"><span class="play-icon">></span></div>
  <img src="${game.resolvedCover || ''}" alt="${safeName}" loading="lazy"
  onerror="this.style.display='none';this.parentElement.querySelector('.fallback').style.display='flex';">
  <div class="fallback">${safeName}</div>
@@ -1929,7 +1929,7 @@ function normalizeProxyUrl(raw) {
   if (/^https?:\/\//i.test(q)) return q;
   // Looks like a domain
   if (q.includes('.') && !q.includes(' ')) return 'https://' + q;
-  // Search query â DuckDuckGo (same as 55GMS does)
+  // Search query -> DuckDuckGo (same as 55GMS does)
   return 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
 }
 
@@ -2170,7 +2170,7 @@ function renderProxyTabs() {
     const close = document.createElement('button');
     close.type = 'button';
     close.className = 'tab-close';
-    close.textContent = 'Ã';
+    close.textContent = 'x';
     close.title = 'Close tab';
     close.addEventListener('click', e => { e.stopPropagation(); closeProxyTab(t.id); });
     btn.appendChild(img);
@@ -2852,7 +2852,7 @@ document.addEventListener('keydown', e => {
  return;
  }
 
- // Double-tap detection â open in new tab
+ // Double-tap detection -> open in new tab
  const now = Date.now();
  if (window.__lastPanicTap && (now - window.__lastPanicTap) < 380) {
  window.open(url, '_blank', 'noopener,noreferrer');
@@ -3179,7 +3179,7 @@ function logoClicked() {
       console.warn('[Axiom] online counter failed', e);
       setCount(0);
       floatEl.classList.add('offline');
-      countEl.textContent = 'â';
+      countEl.textContent = '-';
     }
   })();
 
@@ -3243,13 +3243,13 @@ function logoClicked() {
   function ensureUsernameUI() {
     if ($('authModal')) return;
     const modal = el('div', 'auth-modal'); modal.id = 'authModal';
-    modal.innerHTML = `<div class="auth-card"><button type="button" class="auth-close" id="authCloseBtn">Ã</button><h2>Choose your username</h2><p class="auth-sub">No account, email, or password needed.</p><form id="usernameForm"><div class="auth-field"><label for="authUsername">Username</label><input id="authUsername" type="text" maxlength="20" minlength="3" placeholder="cool_player" autocomplete="off" required></div><p class="auth-error" id="authError" hidden></p><button type="submit" class="auth-submit">Save username</button></form></div>`;
+    modal.innerHTML = `<div class="auth-card"><button type="button" class="auth-close" id="authCloseBtn">x</button><h2>Choose your username</h2><p class="auth-sub">No account, email, or password needed.</p><form id="usernameForm"><div class="auth-field"><label for="authUsername">Username</label><input id="authUsername" type="text" maxlength="20" minlength="3" placeholder="cool_player" autocomplete="off" required></div><p class="auth-error" id="authError" hidden></p><button type="submit" class="auth-submit">Save username</button></form></div>`;
     document.body.appendChild(modal);
     $('authCloseBtn').onclick = () => modal.classList.remove('open');
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
     $('usernameForm').onsubmit = e => {
       e.preventDefault(); const value = $('authUsername').value.trim();
-      if (!/^[A-Za-z0-9_]{3,20}$/.test(value)) { $('authError').textContent='Use 3â20 letters, numbers, or _. '; $('authError').hidden=false; return; }
+      if (!/^[A-Za-z0-9_]{3,20}$/.test(value)) { $('authError').textContent='Use 3-20 letters, numbers, or _. '; $('authError').hidden=false; return; }
       username = value; localStorage.setItem('axiomUsername', username); modal.classList.remove('open'); updateAuthUI(); toast('Username saved as @' + username);
     };
   }
@@ -3262,7 +3262,7 @@ function logoClicked() {
   function ensureChatUI() {
     if (!$('viewChat')) {
       const section = el('section','view'); section.id='viewChat';
-      section.innerHTML=`<div class="chat-shell"><div class="chat-header"><div><h1>Axiom Chat</h1><p class="chat-sub" id="chatStatus">Connectingâ¦</p></div><div class="chat-header-actions"><button type="button" class="tool-btn" id="chatLoginBtn">${username ? '@'+escapeHtml(username) : 'Set username'}</button></div></div><div class="chat-messages" id="chatMessages"></div><form class="chat-composer" id="chatForm"><input type="text" id="chatInput" maxlength="500" placeholder="Set a username to sendâ¦" autocomplete="off"><button type="submit" id="chatSendBtn">Send</button></form></div>`;
+      section.innerHTML=`<div class="chat-shell"><div class="chat-header"><div><h1>Axiom Chat</h1><p class="chat-sub" id="chatStatus">Connecting...</p></div><div class="chat-header-actions"><button type="button" class="tool-btn" id="chatLoginBtn">${username ? '@'+escapeHtml(username) : 'Set username'}</button></div></div><div class="chat-messages" id="chatMessages"></div><form class="chat-composer" id="chatForm"><input type="text" id="chatInput" maxlength="500" placeholder="Set a username to send..." autocomplete="off"><button type="submit" id="chatSendBtn">Send</button></form></div>`;
       const games=$('viewGames'); if(games&&games.parentNode) games.parentNode.insertBefore(section,games.nextSibling); else document.body.appendChild(section);
     }
     const loginBtn=$('chatLoginBtn'); if(loginBtn&&!loginBtn.dataset.wired){loginBtn.dataset.wired='1';loginBtn.onclick=()=>openUsernameModal();}
@@ -3275,11 +3275,11 @@ function logoClicked() {
   function saveCache(){try{localStorage.setItem(MSG_CACHE_KEY,JSON.stringify(messages.slice(-MAX_CACHE)));}catch(_){} }
   function scrollBottom(){const box=$('chatMessages');if(box)box.scrollTop=box.scrollHeight;}
   function leaveChat(){if(chatChannel){try{sb.removeChannel(chatChannel);}catch(_){}chatChannel=null;}}
-  function connectChat(){if(chatConnecting||chatChannel)return;chatConnecting=true;const st=$('chatStatus');if(st)st.textContent='Connecting to chatâ¦';chatChannel=sb.channel(CHAT_CHANNEL,{config:{broadcast:{self:true}}});chatChannel.on('broadcast',{event:'msg'},({payload})=>{if(!payload||!payload.body)return;if(payload.id&&messages.some(m=>m.id===payload.id))return;messages.push(payload);if(messages.length>MAX_CACHE)messages=messages.slice(-MAX_CACHE);saveCache();appendMessage(payload);scrollBottom();}).subscribe(status=>{chatConnecting=false;const el=$('chatStatus');if(status==='SUBSCRIBED'){if(el)el.textContent=username?'Online as @'+username:'Connected â set a username to send';}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(el)el.textContent='Chat connection error';chatChannel=null;setTimeout(connectChat,3000);}else if(status==='CLOSED')chatChannel=null;});}
+  function connectChat(){if(chatConnecting||chatChannel)return;chatConnecting=true;const st=$('chatStatus');if(st)st.textContent='Connecting to chat...';chatChannel=sb.channel(CHAT_CHANNEL,{config:{broadcast:{self:true}}});chatChannel.on('broadcast',{event:'msg'},({payload})=>{if(!payload||!payload.body)return;if(payload.id&&messages.some(m=>m.id===payload.id))return;messages.push(payload);if(messages.length>MAX_CACHE)messages=messages.slice(-MAX_CACHE);saveCache();appendMessage(payload);scrollBottom();}).subscribe(status=>{chatConnecting=false;const el=$('chatStatus');if(status==='SUBSCRIBED'){if(el)el.textContent=username?'Online as @'+username:'Connected - set a username to send';}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(el)el.textContent='Chat connection error';chatChannel=null;setTimeout(connectChat,3000);}else if(status==='CLOSED')chatChannel=null;});}
   function renderMessages(){const box=$('chatMessages');if(!box)return;box.innerHTML='';if(!messages.length){box.innerHTML='<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';return;}messages.forEach(appendMessage);scrollBottom();}
   function appendMessage(m){const box=$('chatMessages');if(!box)return;const empty=box.querySelector('.chat-empty');if(empty)empty.remove();const mine=!!(username&&m.username===username);const row=el('div','chat-row'+(mine?' mine':''));const time=m.created_at?new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';row.innerHTML=`<div class="chat-bubble"><div class="chat-meta"><span class="chat-user">@${escapeHtml(m.username||'user')}</span><span class="chat-time">${time}</span></div><div class="chat-body">${escapeHtml(m.body||'')}</div></div>`;box.appendChild(row);}
-  async function sendMessage(){if(!username){openUsernameModal();return;}const input=$('chatInput');const body=(input?.value||'').trim();if(!body)return;if(!chatChannel){connectChat();toast('Connecting to chatâ¦ try again in a moment.');return;}const payload={id:(crypto.randomUUID&&crypto.randomUUID())||(String(Date.now())+Math.random()),username:username,body:body.slice(0,500),created_at:new Date().toISOString()};input.value='';if(!messages.some(m=>m.id===payload.id)){messages.push(payload);saveCache();appendMessage(payload);scrollBottom();}try{const res=await chatChannel.send({type:'broadcast',event:'msg',payload});if(res&&res.error)toast(res.error.message||'Send failed');}catch(e){toast(e?.message||'Send failed');}}
-  function updateAuthUI(){const btn=$('chatLoginBtn'),status=$('chatStatus'),input=$('chatInput'),send=$('chatSendBtn'),acc=$('railAccount');if(btn)btn.textContent=username?'@'+username:'Set username';if(status&&chatChannel)status.textContent=username?'Online as @'+username:'Connected â set a username to send';if(input){input.placeholder=username?'Say somethingâ¦':'Set a username to sendâ¦';}if(acc)acc.textContent=username?'@'+username:'Username';}
+  async function sendMessage(){if(!username){openUsernameModal();return;}const input=$('chatInput');const body=(input?.value||'').trim();if(!body)return;if(!chatChannel){connectChat();toast('Connecting to chat... try again in a moment.');return;}const payload={id:(crypto.randomUUID&&crypto.randomUUID())||(String(Date.now())+Math.random()),username:username,body:body.slice(0,500),created_at:new Date().toISOString()};input.value='';if(!messages.some(m=>m.id===payload.id)){messages.push(payload);saveCache();appendMessage(payload);scrollBottom();}try{const res=await chatChannel.send({type:'broadcast',event:'msg',payload});if(res&&res.error)toast(res.error.message||'Send failed');}catch(e){toast(e?.message||'Send failed');}}
+  function updateAuthUI(){const btn=$('chatLoginBtn'),status=$('chatStatus'),input=$('chatInput'),send=$('chatSendBtn'),acc=$('railAccount');if(btn)btn.textContent=username?'@'+username:'Set username';if(status&&chatChannel)status.textContent=username?'Online as @'+username:'Connected - set a username to send';if(input){input.placeholder=username?'Say something...':'Set a username to send...';}if(acc)acc.textContent=username?'@'+username:'Username';}
   async function boot(){try{injectStyles();ensureUsernameUI();ensureChatUI();messages=loadCache();renderMessages();if(typeof window.showView==='function'&&!window.showView.__axiomWrapped){const originalShowView=window.showView;const wrapped=function(name){originalShowView(name);if(name==='chat')setTimeout(scrollBottom,0);};wrapped.__axiomWrapped=true;window.showView=wrapped;}connectChat();updateAuthUI();}catch(e){console.error('[Axiom username]',e);const st=$('chatStatus');if(st)st.textContent='Chat unavailable';}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
