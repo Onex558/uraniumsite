@@ -3060,338 +3060,14 @@ function logoClicked() {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-/**
- * Simple Axiom Chat — just pick a username, no password
- */
-(function () {
-  'use strict';
 
-  const SUPABASE_URL = 'https://kgehjrpdwlkzsvaiwvaf.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_q0etU4VaLZD8v7OuSkN1ow_P3GA1L4T';
-  const CHAT_CHANNEL = 'axiom-chat-global';
-  const NAME_KEY = 'axiomSimpleName';
-  const MSG_CACHE_KEY = 'axiomChatCache';
-  const MAX_CACHE = 120;
-
-  let sb = null;
-  let chatChannel = null;
-  let currentUser = null; // { username }
-  let messages = [];
-
-  function $(id) { return document.getElementById(id); }
-  function el(tag, cls, html) {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (html != null) n.innerHTML = html;
-    return n;
-  }
-  function escapeHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-  function toast(msg) {
-    if (typeof showToast === 'function') return showToast(msg);
-    const t = $('achToast');
-    if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
-  }
-
-  function loadName() {
-    try { return localStorage.getItem(NAME_KEY) || ''; } catch(_) { return ''; }
-  }
-  function saveName(name) {
-    try { localStorage.setItem(NAME_KEY, name); } catch(_) {}
-  }
-
-  function injectStyles() {
-    if ($('axiom-chat-styles')) return;
-    const s = document.createElement('style');
-    s.id = 'axiom-chat-styles';
-    s.textContent = `
-      #viewChat{flex-direction:column;padding:72px 28px 48px 150px}
-      @media(max-width:700px){#viewChat{padding:16px 12px 110px}}
-      .chat-shell{display:flex;flex-direction:column;height:min(78vh,720px);background:rgba(12,12,20,.55);border:1px solid rgba(255,255,255,.07);border-radius:18px;overflow:hidden}
-      .chat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap}
-      .chat-header h1{margin:0;font-size:1.35em;font-weight:800}
-      .chat-sub{margin:4px 0 0;font-size:.8em;color:#7a7a92}
-      .chat-messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
-      .chat-empty{margin:auto;text-align:center;color:#7a7a92;padding:24px}
-      .chat-row{display:flex}
-      .chat-row.mine{justify-content:flex-end}
-      .chat-bubble{max-width:min(520px,88%);background:#0c0c14;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:10px 12px}
-      .chat-row.mine .chat-bubble{background:rgba(139,108,255,.18);border-color:rgba(139,108,255,.35)}
-      .chat-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
-      .chat-user{font-size:.75em;font-weight:700;color:#8b6cff}
-      .chat-time{font-size:.68em;color:#7a7a92}
-      .chat-body{font-size:.92em;line-height:1.45;word-break:break-word;white-space:pre-wrap}
-      .chat-composer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid rgba(255,255,255,.07);background:rgba(8,8,14,.6)}
-      .chat-composer input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#05050a;color:#f0f0f7;font-family:inherit;outline:none}
-      .chat-composer button{padding:12px 18px;border:none;border-radius:12px;background:#8b6cff;color:#fff;font-weight:800;font-family:inherit;cursor:pointer}
-      .name-modal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:16px}
-      .name-modal.open{display:flex}
-      .name-card{width:min(360px,100%);background:rgba(12,12,20,.98);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:24px 22px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
-      .name-card h2{margin:0 0 8px;font-size:1.2em;color:#8b6cff}
-      .name-card p{margin:0 0 14px;font-size:.85em;color:#7a7a92}
-      .name-card input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:#05050a;color:#f0f0f7;font-family:inherit;font-size:.95em;outline:none;margin-bottom:12px}
-      .name-card button{width:100%;padding:12px;border:none;border-radius:12px;background:#8b6cff;color:#fff;font-weight:800;font-family:inherit;cursor:pointer}
-    `;
-    document.head.appendChild(s);
-  }
-
-  function ensureNameModal() {
-    if ($('nameModal')) return;
-    const modal = el('div', 'name-modal');
-    modal.id = 'nameModal';
-    modal.innerHTML = `
-      <div class="name-card">
-        <h2>Pick a username</h2>
-        <p>No password needed. Just a name for chat.</p>
-        <input id="nameInput" type="text" maxlength="20" placeholder="cool_player" autocomplete="username" />
-        <button type="button" id="nameSaveBtn">Join Chat</button>
-      </div>`;
-    document.body.appendChild(modal);
-
-    $('nameSaveBtn').onclick = () => {
-      const name = ($('nameInput').value || '').trim();
-      if (!/^[A-Za-z0-9_]{2,20}$/.test(name)) {
-        toast('Username: 2–20 letters, numbers, or _');
-        return;
-      }
-      currentUser = { username: name };
-      saveName(name);
-      modal.classList.remove('open');
-      updateUI();
-      connectChat();
-      toast('Joined as @' + name);
-    };
-    $('nameInput').onkeydown = (e) => {
-      if (e.key === 'Enter') $('nameSaveBtn').click();
-    };
-  }
-
-  function askName() {
-    ensureNameModal();
-    const modal = $('nameModal');
-    modal.classList.add('open');
-    setTimeout(() => { try { $('nameInput').focus(); } catch(_){} }, 50);
-  }
-
-  function ensureChatUI() {
-    if ($('viewChat')) return;
-    const section = el('section', 'view');
-    section.id = 'viewChat';
-    section.innerHTML = `
-      <div class="chat-shell">
-        <div class="chat-header">
-          <div>
-            <h1>Axiom Chat</h1>
-            <p class="chat-sub" id="chatStatus">Pick a username to chat</p>
-          </div>
-          <button type="button" class="tool-btn" id="chatNameBtn">Set Name</button>
-        </div>
-        <div class="chat-messages" id="chatMessages"></div>
-        <form class="chat-composer" id="chatForm" action="javascript:void(0)" onsubmit="return false;">
-          <input type="text" id="chatInput" maxlength="500" placeholder="Pick a username first…" disabled autocomplete="off" />
-          <button type="button" id="chatSendBtn" disabled>Send</button>
-        </form>
-      </div>`;
-    const games = $('viewGames');
-    if (games && games.parentNode) games.parentNode.insertBefore(section, games.nextSibling);
-    else document.body.appendChild(section);
-
-    $('chatNameBtn').onclick = askName;
-    $('chatForm').onsubmit = function(e){ e && e.preventDefault(); sendMessage(); return false; };
-    $('chatSendBtn').onclick = function(e){ e && e.preventDefault(); sendMessage(); return false; };
-
-    const chatRail = $('railChat');
-    if (chatRail && !chatRail.dataset.wiredExtra) {
-      chatRail.dataset.wiredExtra = '1';
-      chatRail.addEventListener('click', () => {
-        if (typeof window.showView === 'function') window.showView('chat');
-        else {
-          document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-          const v = $('viewChat');
-          if (v) v.classList.add('active');
-        }
-        scrollBottom();
-        if (!currentUser) askName();
-      });
-    }
-  }
-
-  function loadCache() {
-    try {
-      const raw = localStorage.getItem(MSG_CACHE_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr.slice(-MAX_CACHE) : [];
-    } catch (_) { return []; }
-  }
-  function saveCache() {
-    try { localStorage.setItem(MSG_CACHE_KEY, JSON.stringify(messages.slice(-MAX_CACHE))); } catch (_) {}
-  }
-
-  function connectChat() {
-    if (typeof supabase === 'undefined') {
-      const st = $('chatStatus');
-      if (st) st.textContent = 'Chat offline';
-      return;
-    }
-    if (!sb) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    if (chatChannel) {
-      try { sb.removeChannel(chatChannel); } catch (_) {}
-      chatChannel = null;
-    }
-    chatChannel = sb.channel(CHAT_CHANNEL, { config: { broadcast: { self: true } } });
-    chatChannel
-      .on('broadcast', { event: 'msg' }, ({ payload }) => {
-        if (!payload || !payload.body) return;
-        if (payload.id && messages.some(m => m.id === payload.id)) return;
-        messages.push(payload);
-        if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
-        saveCache();
-        appendMessage(payload);
-        scrollBottom();
-      })
-      .subscribe((status) => {
-        const st = $('chatStatus');
-        if (status === 'SUBSCRIBED' && st) {
-          st.textContent = currentUser ? ('Online as @' + currentUser.username) : 'Connected';
-        }
-      });
-  }
-
-  function renderMessages() {
-    const box = $('chatMessages');
-    if (!box) return;
-    box.innerHTML = '';
-    if (!messages.length) {
-      box.innerHTML = '<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';
-      return;
-    }
-    messages.forEach(appendMessage);
-    scrollBottom();
-  }
-
-  function appendMessage(m) {
-    const box = $('chatMessages');
-    if (!box) return;
-    const empty = box.querySelector('.chat-empty');
-    if (empty) empty.remove();
-    const mine = currentUser && m.username && m.username.toLowerCase() === currentUser.username.toLowerCase();
-    const row = el('div', 'chat-row' + (mine ? ' mine' : ''));
-    const time = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    row.innerHTML = `
-      <div class="chat-bubble">
-        <div class="chat-meta">
-          <span class="chat-user">@${escapeHtml(m.username || 'anon')}</span>
-          <span class="chat-time">${time}</span>
-        </div>
-        <div class="chat-body">${escapeHtml(m.body || '')}</div>
-      </div>`;
-    box.appendChild(row);
-  }
-
-  function scrollBottom() {
-    const box = $('chatMessages');
-    if (box) box.scrollTop = box.scrollHeight;
-  }
-
-  async function sendMessage() {
-    if (!currentUser) {
-      askName();
-      return;
-    }
-    const input = $('chatInput');
-    const body = (input && input.value || '').trim();
-    if (!body) return;
-    input.value = '';
-    const payload = {
-      id: (crypto.randomUUID && crypto.randomUUID()) || (String(Date.now()) + Math.random()),
-      username: currentUser.username,
-      body: body.slice(0, 500),
-      created_at: new Date().toISOString()
-    };
-    if (!messages.some(m => m.id === payload.id)) {
-      messages.push(payload);
-      saveCache();
-      appendMessage(payload);
-      scrollBottom();
-    }
-    if (!chatChannel) connectChat();
-    if (chatChannel) {
-      try {
-        await chatChannel.send({ type: 'broadcast', event: 'msg', payload });
-      } catch (e) {
-        toast(e.message || 'Send failed');
-      }
-    }
-  }
-
-  function updateUI() {
-    const status = $('chatStatus');
-    const input = $('chatInput');
-    const send = $('chatSendBtn');
-    const nameBtn = $('chatNameBtn');
-    if (currentUser) {
-      if (status) status.textContent = 'Online as @' + currentUser.username;
-      if (input) { input.disabled = false; input.placeholder = 'Say something…'; }
-      if (send) send.disabled = false;
-      if (nameBtn) nameBtn.textContent = '@' + currentUser.username;
-    } else {
-      if (status) status.textContent = 'Pick a username to chat';
-      if (input) { input.disabled = true; input.placeholder = 'Pick a username first…'; }
-      if (send) send.disabled = true;
-      if (nameBtn) nameBtn.textContent = 'Set Name';
-    }
-  }
-
-  function boot() {
-    try {
-      injectStyles();
-      ensureChatUI();
-      messages = loadCache();
-      renderMessages();
-
-      const saved = loadName();
-      if (saved) {
-        currentUser = { username: saved };
-        updateUI();
-        connectChat();
-      } else {
-        updateUI();
-        connectChat(); // still receive messages
-      }
-
-      // When opening chat view, ask for name if needed
-      const chatRail = $('railChat');
-      if (chatRail) {
-        chatRail.addEventListener('click', () => {
-          setTimeout(() => { if (!currentUser) askName(); }, 100);
-        });
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
-  }
-})();
-</script>
 
 
 
 <script>
 /**
- * Axiom Auth + Chat â ZERO SQL setup
- * Uses: Supabase Auth (built-in) + Realtime Broadcast (no tables)
- * Progress: localStorage per user
+ * Axiom Account + Chat
+ * One Supabase client, one auth system, one realtime chat system.
  */
 (function () {
   'use strict';
@@ -3402,33 +3078,33 @@ function logoClicked() {
   const MSG_CACHE_KEY = 'axiomChatCache';
   const MAX_CACHE = 100;
 
-  if (typeof supabase === 'undefined') {
-    console.error('[Axiom] supabase-js missing');
-    return;
-  }
-
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  window.axiomSb = sb;
-
+  let sb = null;
   let currentUser = null;
-  let username = null;
   let chatChannel = null;
   let messages = [];
 
-  function $(id) { return document.getElementById(id); }
+  const $ = id => document.getElementById(id);
+
   function el(tag, cls, html) {
     const n = document.createElement(tag);
     if (cls) n.className = cls;
     if (html != null) n.innerHTML = html;
     return n;
   }
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
+
   function toast(msg) {
-    if (typeof showToast === 'function') return showToast(msg);
+    if (typeof showToast === 'function') {
+      showToast(msg);
+      return;
+    }
     const t = $('achToast');
     if (!t) return;
     t.textContent = msg;
@@ -3437,69 +3113,64 @@ function logoClicked() {
     window._toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  function getUsernameFromUser(user) {
+  function getUsername(user) {
     if (!user) return null;
-    return (user.user_metadata && user.user_metadata.username)
-      || (user.email && user.email.split('@')[0])
-      || ('user_' + String(user.id).slice(0, 8));
+    return (user.user_metadata && user.user_metadata.username) ||
+      (user.email ? user.email.split('@')[0] : null) ||
+      ('user_' + String(user.id).slice(0, 8));
   }
 
-  // ----- styles -----
   function injectStyles() {
-    if ($('axiom-chat-styles')) return;
-    const s = document.createElement('style');
-    s.id = 'axiom-chat-styles';
-    s.textContent = `
+    if ($('axiom-account-chat-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'axiom-account-chat-styles';
+    style.textContent = `
       .auth-modal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:16px}
       .auth-modal.open{display:flex}
       .auth-card{position:relative;width:min(400px,100%);background:rgba(12,12,20,.98);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:18px;padding:24px 22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-      .auth-close{position:absolute;top:12px;right:12px;background:transparent;border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer}
+      .auth-close{position:absolute;top:12px;right:12px;background:transparent;border:1px solid var(--border,rgba(255,255,255,.1));color:var(--text,#fff);width:32px;height:32px;border-radius:8px;cursor:pointer}
       .auth-card h2{margin:0 0 4px;font-size:1.25em;color:var(--primary,#8b6cff)}
       .auth-sub{margin:0 0 16px;font-size:.85em;color:var(--muted,#7a7a92)}
       .auth-tabs{display:flex;gap:8px;margin-bottom:14px}
-      .auth-tab{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border);background:var(--surface,#0c0c14);color:var(--muted);font-weight:700;cursor:pointer;font-family:inherit}
-      .auth-tab.active{background:rgba(var(--primary-rgb,139,108,255),.2);border-color:rgba(var(--primary-rgb,139,108,255),.45);color:#fff}
+      .auth-tab{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--surface,#0c0c14);color:var(--muted,#7a7a92);font-weight:700;cursor:pointer;font-family:inherit}
+      .auth-tab.active{background:rgba(139,108,255,.2);border-color:rgba(139,108,255,.45);color:#fff}
       .auth-field{margin-bottom:12px}
-      .auth-field label{display:block;font-size:.72em;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
-      .auth-field input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg,#05050a);color:var(--text);font-family:inherit;font-size:.95em;outline:none}
-      .auth-field input:focus{border-color:rgba(var(--primary-rgb,139,108,255),.55)}
+      .auth-field label{display:block;font-size:.72em;color:var(--muted,#7a7a92);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+      .auth-field input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
       .auth-error{color:#ff6b6b;font-size:.82em;margin:0 0 10px}
       .auth-submit{width:100%;padding:12px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer;font-size:.95em}
       .auth-submit:disabled{opacity:.6;cursor:wait}
-      .auth-hint{margin:12px 0 0;font-size:.75em;color:var(--muted);text-align:center}
+      .auth-hint{margin:12px 0 0;font-size:.75em;color:var(--muted,#7a7a92);text-align:center}
       #viewChat{flex-direction:column;padding:72px 28px 48px 150px;gap:0}
       @media(max-width:700px){#viewChat{padding:16px 12px 110px}}
-      .chat-shell{display:flex;flex-direction:column;height:min(78vh,720px);background:rgba(12,12,20,.55);border:1px solid var(--border);border-radius:18px;overflow:hidden}
-      .chat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+      .chat-shell{display:flex;flex-direction:column;height:min(78vh,720px);background:rgba(12,12,20,.55);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:18px;overflow:hidden}
+      .chat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border,rgba(255,255,255,.07));flex-wrap:wrap}
       .chat-header h1{margin:0;font-size:1.35em;font-weight:800;letter-spacing:-.02em}
-      .chat-sub{margin:4px 0 0;font-size:.8em;color:var(--muted)}
+      .chat-sub{margin:4px 0 0;font-size:.8em;color:var(--muted,#7a7a92)}
       .chat-messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
-      .chat-empty{margin:auto;text-align:center;color:var(--muted);padding:24px}
-      .chat-row{display:flex}
-      .chat-row.mine{justify-content:flex-end}
-      .chat-bubble{max-width:min(520px,88%);background:var(--surface,#0c0c14);border:1px solid var(--border);border-radius:14px;padding:10px 12px}
-      .chat-row.mine .chat-bubble{background:rgba(var(--primary-rgb,139,108,255),.18);border-color:rgba(var(--primary-rgb,139,108,255),.35)}
+      .chat-empty{margin:auto;text-align:center;color:var(--muted,#7a7a92);padding:24px}
+      .chat-row{display:flex}.chat-row.mine{justify-content:flex-end}
+      .chat-bubble{max-width:min(520px,88%);background:var(--surface,#0c0c14);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:14px;padding:10px 12px}
+      .chat-row.mine .chat-bubble{background:rgba(139,108,255,.18);border-color:rgba(139,108,255,.35)}
       .chat-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
       .chat-user{font-size:.75em;font-weight:700;color:var(--primary,#8b6cff)}
-      .chat-time{font-size:.68em;color:var(--muted)}
+      .chat-time{font-size:.68em;color:var(--muted,#7a7a92)}
       .chat-body{font-size:.92em;line-height:1.45;word-break:break-word;white-space:pre-wrap}
-      .chat-composer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);background:rgba(8,8,14,.6)}
-      .chat-composer input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg,#05050a);color:var(--text);font-family:inherit;font-size:.95em;outline:none}
-      .chat-composer input:focus{border-color:rgba(var(--primary-rgb,139,108,255),.5)}
+      .chat-composer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border,rgba(255,255,255,.07));background:rgba(8,8,14,.6)}
+      .chat-composer input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
       .chat-composer button{padding:12px 18px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer}
       .chat-composer button:disabled{opacity:.45;cursor:not-allowed}
     `;
-    document.head.appendChild(s);
+    document.head.appendChild(style);
   }
 
-  // ----- auth modal -----
   function ensureAuthUI() {
     if ($('authModal')) return;
     const modal = el('div', 'auth-modal', `
-      <div class="auth-card" role="dialog">
-        <button type="button" class="auth-close" id="authCloseBtn">â</button>
+      <div class="auth-card" role="dialog" aria-modal="true">
+        <button type="button" class="auth-close" id="authCloseBtn">×</button>
         <h2 id="authTitle">Sign in to Axiom</h2>
-        <p class="auth-sub">Save progress and chat with others online.</p>
+        <p class="auth-sub">Save your progress and chat with others online.</p>
         <div class="auth-tabs">
           <button type="button" class="auth-tab active" data-tab="login">Login</button>
           <button type="button" class="auth-tab" data-tab="signup">Sign up</button>
@@ -3507,23 +3178,24 @@ function logoClicked() {
         <form id="authForm">
           <div class="auth-field" id="authUsernameWrap" style="display:none">
             <label for="authUsername">Username</label>
-            <input id="authUsername" type="text" maxlength="20" placeholder="cool_player" autocomplete="username" />
+            <input id="authUsername" type="text" maxlength="20" placeholder="cool_player" autocomplete="username">
           </div>
           <div class="auth-field">
             <label for="authEmail">Email</label>
-            <input id="authEmail" type="email" required placeholder="you@email.com" autocomplete="email" />
+            <input id="authEmail" type="email" required placeholder="you@email.com" autocomplete="email">
           </div>
           <div class="auth-field">
             <label for="authPassword">Password</label>
-            <input id="authPassword" type="password" required minlength="8" placeholder="at least 8 characters" autocomplete="current-password" />
+            <input id="authPassword" type="password" required minlength="8" placeholder="at least 8 characters" autocomplete="current-password">
           </div>
           <p class="auth-error" id="authError" hidden></p>
           <button type="submit" class="auth-submit" id="authSubmitBtn">Login</button>
         </form>
-        <p class="auth-hint">Use a real email format. Password must be 8+ characters and not a common password.</p>
+        <p class="auth-hint">Passwords must be at least 8 characters.</p>
       </div>
     `);
     document.body.appendChild(modal);
+
     $('authCloseBtn').onclick = () => modal.classList.remove('open');
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
 
@@ -3540,33 +3212,32 @@ function logoClicked() {
       };
     });
 
-    $('authForm').onsubmit = async (e) => {
+    $('authForm').onsubmit = async e => {
       e.preventDefault();
       const signup = modal.querySelector('.auth-tab.active')?.dataset.tab === 'signup';
       const email = $('authEmail').value.trim();
       const password = $('authPassword').value;
       const uname = ($('authUsername')?.value || '').trim();
-      const errEl = $('authError');
+      const errorEl = $('authError');
       const submit = $('authSubmitBtn');
-      errEl.hidden = true;
+      errorEl.hidden = true;
       submit.disabled = true;
-      submit.textContent = signup ? 'Creatingâ¦' : 'Signing inâ¦';
+      submit.textContent = signup ? 'Creating…' : 'Signing in…';
+
       try {
         if (signup) {
-          if (!/^[A-Za-z0-9_]{3,20}$/.test(uname)) throw new Error('Username: 3â20 letters, numbers, or _');
+          if (!/^[A-Za-z0-9_]{3,20}$/.test(uname)) {
+            throw new Error('Username must be 3–20 letters, numbers, or underscores.');
+          }
           const { data, error } = await sb.auth.signUp({
-            email, password,
+            email,
+            password,
             options: { data: { username: uname } }
           });
           if (error) throw error;
-          if (data.user && !data.session) {
-            errEl.textContent = 'Account created. If email confirm is on, check your inbox, then login. Otherwise try logging in now.';
-            errEl.hidden = false;
-            modal.querySelector('.auth-tab[data-tab="login"]')?.click();
-          } else {
-            modal.classList.remove('open');
-            toast('Welcome, @' + uname + '!');
-          }
+          modal.classList.remove('open');
+          if (data.session) toast('Welcome, @' + uname + '!');
+          else toast('Account created. Check your email if confirmation is required.');
         } else {
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
@@ -3574,11 +3245,8 @@ function logoClicked() {
           toast('Logged in');
         }
       } catch (err) {
-        let m = err.message || 'Auth failed';
-        if (/confirm/i.test(m)) m = 'Email confirmation may be required. Check inbox or disable confirm in Supabase Auth settings.';
-        if (/invalid login/i.test(m)) m = 'Wrong email or password.';
-        errEl.textContent = m;
-        errEl.hidden = false;
+        errorEl.textContent = err?.message || 'Authentication failed.';
+        errorEl.hidden = false;
       } finally {
         submit.disabled = false;
         const stillSignup = modal.querySelector('.auth-tab.active')?.dataset.tab === 'signup';
@@ -3587,9 +3255,12 @@ function logoClicked() {
     };
   }
 
-  function openAuthModal() { /* login removed */ }
+  function openAuthModal() {
+    ensureAuthUI();
+    $('authModal').classList.add('open');
+    setTimeout(() => $('authEmail')?.focus(), 50);
+  }
 
-  // ----- chat view -----
   function ensureChatUI() {
     if (!$('viewChat')) {
       const section = el('section', 'view');
@@ -3599,113 +3270,105 @@ function logoClicked() {
           <div class="chat-header">
             <div>
               <h1>Axiom Chat</h1>
-              <p class="chat-sub" id="chatStatus">Sign in to chat live with others</p>
+              <p class="chat-sub" id="chatStatus">Connecting…</p>
             </div>
             <div class="chat-header-actions">
-              <button type="button" class="tool-btn" id="chatLoginBtn" style="display:none">Login</button>
+              <button type="button" class="tool-btn" id="chatLoginBtn">Login</button>
             </div>
           </div>
           <div class="chat-messages" id="chatMessages"></div>
-          <form class="chat-composer" id="chatForm" action="javascript:void(0)" onsubmit="return false;">
-            <input type="text" id="chatInput" maxlength="500" placeholder="Sign in to sendâ¦" disabled autocomplete="off" />
-            <button type="button" id="chatSendBtn" disabled>Send</button>
+          <form class="chat-composer" id="chatForm">
+            <input type="text" id="chatInput" maxlength="500" placeholder="Sign in to send…" disabled autocomplete="off">
+            <button type="submit" id="chatSendBtn" disabled>Send</button>
           </form>
         </div>`;
       const games = $('viewGames');
-      if (games && games.parentNode) games.parentNode.insertBefore(section, games.nextSibling);
+      if (games?.parentNode) games.parentNode.insertBefore(section, games.nextSibling);
       else document.body.appendChild(section);
     }
 
     const loginBtn = $('chatLoginBtn');
     if (loginBtn && !loginBtn.dataset.wired) {
       loginBtn.dataset.wired = '1';
-      loginBtn.onclick = () => {
-        if (currentUser) sb.auth.signOut();
-        else openAuthModal();
-      };
+      loginBtn.onclick = () => currentUser ? logout() : openAuthModal();
     }
+
     const form = $('chatForm');
     if (form && !form.dataset.wired) {
       form.dataset.wired = '1';
-      form.onsubmit = async (e) => {
+      form.onsubmit = async e => {
         e.preventDefault();
         await sendMessage();
       };
     }
 
-    // wire rail buttons
-    const acc = $('railAccount');
-    if (acc && !acc.dataset.wired) {
-      acc.dataset.wired = '1';
-      acc.onclick = () => {
-        if (currentUser) {
-          if (confirm('Logged in as @' + (username || 'you') + '\\n\\nOK = Log out')) {
-            sb.auth.signOut();
-          }
-        } else openAuthModal();
-      };
-    }
-    const chatRail = $('railChat');
-    if (chatRail && !chatRail.dataset.wiredExtra) {
-      chatRail.dataset.wiredExtra = '1';
-      chatRail.addEventListener('click', () => {
-        if (typeof window.showView === 'function') window.showView('chat');
-      });
+    const accountBtn = $('railAccount');
+    if (accountBtn && !accountBtn.dataset.wiredAccount) {
+      accountBtn.dataset.wiredAccount = '1';
+      accountBtn.onclick = () => currentUser ? logout() : openAuthModal();
     }
   }
 
-  // ----- message cache (local) -----
   function loadCache() {
     try {
       const raw = localStorage.getItem(MSG_CACHE_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
+      const arr = raw ? JSON.parse(raw) : [];
       return Array.isArray(arr) ? arr.slice(-MAX_CACHE) : [];
     } catch (_) { return []; }
   }
+
   function saveCache() {
-    try {
-      localStorage.setItem(MSG_CACHE_KEY, JSON.stringify(messages.slice(-MAX_CACHE)));
-    } catch (_) {}
+    try { localStorage.setItem(MSG_CACHE_KEY, JSON.stringify(messages.slice(-MAX_CACHE))); } catch (_) {}
   }
 
-  // ----- player progress per account -----
-  function userPlayerKey(uid) {
-    return 'axiomPlayer_' + uid;
+  function renderMessages() {
+    const box = $('chatMessages');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!messages.length) {
+      box.innerHTML = '<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';
+      return;
+    }
+    messages.forEach(appendMessage);
+    scrollBottom();
   }
-  function mergePlayerOnLogin(uid) {
-    if (typeof player === 'undefined') return;
-    try {
-      const cloudRaw = localStorage.getItem(userPlayerKey(uid));
-      if (cloudRaw) {
-        const cloud = JSON.parse(cloudRaw);
-        const localXp = player.xp || 0;
-        const cloudXp = cloud.xp || 0;
-        if (cloudXp >= localXp) {
-          player.xp = cloud.xp || 0;
-          player.plays = cloud.plays || 0;
-          if (Array.isArray(cloud.favorites)) player.favorites = cloud.favorites;
-          if (Array.isArray(cloud.achievements)) player.achievements = cloud.achievements;
-          if (typeof savePlayerData === 'function') savePlayerData();
-          if (typeof updateStatsUI === 'function') updateStatsUI();
-        }
-      }
-      // always save current under user key
-      localStorage.setItem(userPlayerKey(uid), JSON.stringify(player));
-    } catch (_) {}
-  }
-  setInterval(() => {
-    if (!currentUser || typeof player === 'undefined') return;
-    try {
-      localStorage.setItem(userPlayerKey(currentUser.id), JSON.stringify(player));
-    } catch (_) {}
-  }, 15000);
 
-  // ----- chat realtime (broadcast â no tables) -----
-  function joinChat() {
-    leaveChat();
-    messages = loadCache();
-    renderMessages();
+  function appendMessage(message) {
+    const box = $('chatMessages');
+    if (!box) return;
+    const empty = box.querySelector('.chat-empty');
+    if (empty) empty.remove();
+    const mine = currentUser && message.user_id === currentUser.id;
+    const row = el('div', 'chat-row' + (mine ? ' mine' : ''));
+    const time = message.created_at
+      ? new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
+    row.innerHTML = `
+      <div class="chat-bubble">
+        <div class="chat-meta">
+          <span class="chat-user">@${escapeHtml(message.username || 'anon')}</span>
+          <span class="chat-time">${escapeHtml(time)}</span>
+        </div>
+        <div class="chat-body">${escapeHtml(message.body || '')}</div>
+      </div>`;
+    box.appendChild(row);
+  }
+
+  function scrollBottom() {
+    const box = $('chatMessages');
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+
+  function disconnectChat() {
+    if (chatChannel && sb) {
+      try { sb.removeChannel(chatChannel); } catch (_) {}
+    }
+    chatChannel = null;
+  }
+
+  function connectChat() {
+    if (!sb) return;
+    disconnectChat();
 
     chatChannel = sb.channel(CHAT_CHANNEL, {
       config: { broadcast: { self: true } }
@@ -3713,8 +3376,7 @@ function logoClicked() {
 
     chatChannel
       .on('broadcast', { event: 'msg' }, ({ payload }) => {
-        if (!payload || !payload.body) return;
-        // dedupe by id
+        if (!payload?.body) return;
         if (payload.id && messages.some(m => m.id === payload.id)) return;
         messages.push(payload);
         if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
@@ -3722,157 +3384,49 @@ function logoClicked() {
         appendMessage(payload);
         scrollBottom();
       })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          const st = $('chatStatus');
-          if (st && currentUser) st.textContent = 'Live as @' + username;
-        }
-      });
-  }
-
-  function leaveChat() {
-    if (chatChannel) {
-      try { sb.removeChannel(chatChannel); } catch (_) {}
-      chatChannel = null;
-    }
-  }
-
-  function renderMessages() {
-    const box = $('chatMessages');
-    if (!box) return;
-    box.innerHTML = '';
-    if (!messages.length) {
-      box.innerHTML = '<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';
-      return;
-    }
-    messages.forEach(appendMessage);
-    scrollBottom();
-  }
-
-  function appendMessage(m) {
-    const box = $('chatMessages');
-    if (!box) return;
-    const empty = box.querySelector('.chat-empty');
-    if (empty) empty.remove();
-    const mine = currentUser && m.user_id === currentUser.id;
-    const row = el('div', 'chat-row' + (mine ? ' mine' : ''));
-    const time = m.created_at
-      ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '';
-    row.innerHTML = `
-      <div class="chat-bubble">
-        <div class="chat-meta">
-          <span class="chat-user">@${escapeHtml(m.username || 'anon')}</span>
-          <span class="chat-time">${time}</span>
-        </div>
-        <div class="chat-body">${escapeHtml(m.body || '')}</div>
-      </div>`;
-    box.appendChild(row);
-  }
-
-  function scrollBottom() {
-    const box = $('chatMessages');
-    if (box) box.scrollTop = box.scrollHeight;
-  }
-
-  async function sendMessage() {
-    if (!currentUser) {
-      currentUser = { username: 'guest' };
-    }
-    if (!sb) sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    if (chatChannel) {
-      try { sb.removeChannel(chatChannel); } catch (_) {}
-      chatChannel = null;
-    }
-
-    chatChannel = sb.channel(CHAT_CHANNEL, { config: { broadcast: { self: true } } });
-    chatChannel
-      .on('broadcast', { event: 'msg' }, ({ payload }) => {
-        if (!payload || !payload.body) return;
-        if (payload.id && messages.some(m => m.id === payload.id)) return;
-        messages.push(payload);
-        if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
-        saveCache();
-        appendMessage(payload);
-        scrollBottom();
-      })
-      .subscribe((status) => {
+      .subscribe(status => {
         const st = $('chatStatus');
         if (status === 'SUBSCRIBED') {
-          if (st) st.textContent = currentUser ? ('Online as @' + currentUser.username) : 'Connected â login to send';
-        } else if (status === 'CHANNEL_ERROR') {
+          if (st) st.textContent = currentUser ? 'Online as @' + currentUser.username : 'Connected — login to send';
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           if (st) st.textContent = 'Chat connection error';
         }
       });
   }
 
-  function renderMessages() {
-    const box = $('chatMessages');
-    if (!box) return;
-    box.innerHTML = '';
-    if (!messages.length) {
-      box.innerHTML = '<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';
-      return;
-    }
-    messages.forEach(appendMessage);
-    scrollBottom();
-  }
-
-  function appendMessage(m) {
-    const box = $('chatMessages');
-    if (!box) return;
-    const empty = box.querySelector('.chat-empty');
-    if (empty) empty.remove();
-    const mine = currentUser && m.username && m.username.toLowerCase() === currentUser.username.toLowerCase();
-    const row = el('div', 'chat-row' + (mine ? ' mine' : ''));
-    const time = m.created_at ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    row.innerHTML = `
-      <div class="chat-bubble">
-        <div class="chat-meta">
-          <span class="chat-user">@${escapeHtml(m.username || 'anon')}</span>
-          <span class="chat-time">${time}</span>
-        </div>
-        <div class="chat-body">${escapeHtml(m.body || '')}</div>
-      </div>`;
-    box.appendChild(row);
-  }
-
-  function scrollBottom() {
-    const box = $('chatMessages');
-    if (box) box.scrollTop = box.scrollHeight;
-  }
-
   async function sendMessage() {
     if (!currentUser) {
-      currentUser = { username: 'anon' + Math.floor(Math.random()*9999) };
+      openAuthModal();
+      return;
     }
     const input = $('chatInput');
     const body = (input?.value || '').trim();
     if (!body) return;
+    if (!chatChannel) connectChat();
+    if (!chatChannel) return;
+
     input.value = '';
     const payload = {
       id: (crypto.randomUUID && crypto.randomUUID()) || (String(Date.now()) + Math.random()),
+      user_id: currentUser.id,
       username: currentUser.username,
       body: body.slice(0, 500),
       created_at: new Date().toISOString()
     };
+
     if (!messages.some(m => m.id === payload.id)) {
       messages.push(payload);
+      if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
       saveCache();
       appendMessage(payload);
       scrollBottom();
     }
-    if (!chatChannel) {
-      connectChat();
-    }
-    if (chatChannel) {
-      try {
-        const res = await chatChannel.send({ type: 'broadcast', event: 'msg', payload });
-        if (res && res.error) toast(res.error.message || 'Send failed');
-      } catch (e) {
-        toast(e.message || 'Send failed');
-      }
+
+    try {
+      const result = await chatChannel.send({ type: 'broadcast', event: 'msg', payload });
+      if (result?.error) toast(result.error.message || 'Send failed');
+    } catch (err) {
+      toast(err?.message || 'Send failed');
     }
   }
 
@@ -3881,67 +3435,112 @@ function logoClicked() {
     const status = $('chatStatus');
     const input = $('chatInput');
     const send = $('chatSendBtn');
-    const acc = $('railAccount');
+    const account = $('railAccount');
+
     if (currentUser) {
       if (loginBtn) loginBtn.textContent = 'Log out';
       if (status) status.textContent = 'Online as @' + currentUser.username;
-      if (input) { input.disabled = false; input.placeholder = 'Say somethingâ¦'; }
+      if (input) { input.disabled = false; input.placeholder = 'Say something…'; }
       if (send) send.disabled = false;
-      if (acc) acc.textContent = '@' + currentUser.username;
+      if (account) account.textContent = '@' + currentUser.username;
     } else {
       if (loginBtn) loginBtn.textContent = 'Login';
-      if (status) status.textContent = 'Connected â login to send';
-      if (input) { input.disabled = true; input.placeholder = 'Sign in to sendâ¦'; input.value = ''; }
+      if (status) status.textContent = 'Connected — login to send';
+      if (input) { input.disabled = true; input.placeholder = 'Sign in to send…'; input.value = ''; }
       if (send) send.disabled = true;
-      if (acc) acc.textContent = 'Account';
+      if (account) account.textContent = 'Account';
     }
   }
 
-  function onLoggedIn() {
-    mergePlayer(currentUser.username);
-    updateAuthUI();
-    if (!chatChannel) connectChat();
-    else updateAuthUI();
+  function mergePlayerOnLogin(uid) {
+    if (typeof player === 'undefined') return;
+    try {
+      const key = 'axiomPlayer_' + uid;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if ((saved.xp || 0) >= (player.xp || 0)) {
+          player.xp = saved.xp || 0;
+          player.plays = saved.plays || 0;
+          if (Array.isArray(saved.favorites)) player.favorites = saved.favorites;
+          if (Array.isArray(saved.achievements)) player.achievements = saved.achievements;
+          if (typeof savePlayerData === 'function') savePlayerData();
+          if (typeof updateStatsUI === 'function') updateStatsUI();
+        }
+      }
+      localStorage.setItem(key, JSON.stringify(player));
+    } catch (_) {}
   }
 
-  function boot() {
+  function savePlayerForCurrentUser() {
+    if (!currentUser || typeof player === 'undefined') return;
+    try { localStorage.setItem('axiomPlayer_' + currentUser.id, JSON.stringify(player)); } catch (_) {}
+  }
+
+  async function logout() {
     try {
-      injectStyles();
-      ensureAuthUI();
-      ensureChatUI();
-      window.axiomOpenAuth = function(){};
+      savePlayerForCurrentUser();
+      const { error } = await sb.auth.signOut();
+      if (error) throw error;
+      toast('Logged out');
+    } catch (err) {
+      toast(err?.message || 'Logout failed');
+    }
+  }
 
-      if (typeof window.showView === 'function') {
-        var orig = window.showView;
-        window.showView = function (name) {
-          orig(name);
-          if (name === 'chat') scrollBottom();
-        };
-      }
+  function handleAuthUser(user) {
+    currentUser = user ? {
+      id: user.id,
+      username: getUsername(user),
+      email: user.email || ''
+    } : null;
 
-      messages = loadCache();
-      renderMessages();
-      connectChat();
+    if (currentUser) mergePlayerOnLogin(currentUser.id);
+    updateAuthUI();
+  }
 
-      var session = loadSession();
-      if (session && session.username) {
-        currentUser = { username: session.username };
-        onLoggedIn();
-      } else {
-        updateAuthUI();
-      }
-    } catch (e) {
-      console.error('[Axiom auth]', e);
-      alert('Account system error: ' + (e && e.message ? e.message : e));
+  async function boot() {
+    injectStyles();
+    ensureAuthUI();
+    ensureChatUI();
+    messages = loadCache();
+    renderMessages();
+
+    if (typeof supabase === 'undefined') {
+      const st = $('chatStatus');
+      if (st) st.textContent = 'Account/chat service unavailable';
+      return;
+    }
+
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window.axiomSb = sb;
+    window.connectChat = connectChat;
+
+    sb.auth.onAuthStateChange((_event, session) => {
+      handleAuthUser(session?.user || null);
+      if (!chatChannel) connectChat();
+    });
+
+    const { data } = await sb.auth.getSession();
+    handleAuthUser(data?.session?.user || null);
+    connectChat();
+
+    if (typeof window.showView === 'function' && !window.axiomShowViewWrapped) {
+      const originalShowView = window.showView;
+      window.showView = function(name) {
+        originalShowView(name);
+        if (name === 'chat') setTimeout(scrollBottom, 0);
+      };
+      window.axiomShowViewWrapped = true;
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      try { boot(); } catch (e) { console.error(e); alert('Axiom chat failed: ' + e.message); }
-    });
+    document.addEventListener('DOMContentLoaded', () => {
+      boot().catch(err => console.error('[Axiom account]', err));
+    }, { once: true });
   } else {
-    try { boot(); } catch (e) { console.error(e); alert('Axiom chat failed: ' + e.message); }
+    boot().catch(err => console.error('[Axiom account]', err));
   }
 })();
 </script>
