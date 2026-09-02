@@ -753,7 +753,7 @@ header{ display:none !important; }
     <button type="button" onclick="openLinksModal(); closeAppsDropdown();">Links</button>
   </div>
   <button type="button" class="rail-btn" data-view="chat" id="railChat" onclick="window.showView&&window.showView('chat (BETA) ')">Chat</button>
-  <!-- account/login removed -->
+  <button type="button" class="rail-btn" id="railAccount">Account</button>
   <button type="button" class="rail-btn" id="railDiscordBtn" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer')">Discord</button>
   <button type="button" class="rail-btn" id="openSettings">Settings</button>
 </nav>
@@ -3061,13 +3061,12 @@ function logoClicked() {
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-
-
-
 <script>
 /**
  * Axiom Account + Chat
- * One Supabase client, one auth system, one realtime chat system.
+ * One Supabase client, one account system, one chat system.
+ * Auth uses Supabase Auth. Chat uses Realtime Broadcast (no chat table required).
+ * Player progress is stored locally per Supabase user ID.
  */
 (function () {
   'use strict';
@@ -3076,14 +3075,23 @@ function logoClicked() {
   const SUPABASE_KEY = 'sb_publishable_q0etU4VaLZD8v7OuSkN1ow_P3GA1L4T';
   const CHAT_CHANNEL = 'axiom-chat-global';
   const MSG_CACHE_KEY = 'axiomChatCache';
-  const MAX_CACHE = 100;
+  const MAX_CACHE = 120;
 
-  let sb = null;
+  if (typeof supabase === 'undefined') {
+    console.error('[Axiom] Supabase library missing');
+    return;
+  }
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  window.axiomSb = sb;
+
   let currentUser = null;
+  let username = null;
   let chatChannel = null;
   let messages = [];
+  let chatConnecting = false;
 
-  const $ = id => document.getElementById(id);
+  function $(id) { return document.getElementById(id); }
 
   function el(tag, cls, html) {
     const n = document.createElement(tag);
@@ -3092,8 +3100,8 @@ function logoClicked() {
     return n;
   }
 
-  function escapeHtml(value) {
-    return String(value ?? '')
+  function escapeHtml(s) {
+    return String(s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -3101,10 +3109,7 @@ function logoClicked() {
   }
 
   function toast(msg) {
-    if (typeof showToast === 'function') {
-      showToast(msg);
-      return;
-    }
+    if (typeof showToast === 'function') return showToast(msg);
     const t = $('achToast');
     if (!t) return;
     t.textContent = msg;
@@ -3113,18 +3118,18 @@ function logoClicked() {
     window._toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  function getUsername(user) {
+  function getUsernameFromUser(user) {
     if (!user) return null;
     return (user.user_metadata && user.user_metadata.username) ||
-      (user.email ? user.email.split('@')[0] : null) ||
+      (user.email && user.email.split('@')[0]) ||
       ('user_' + String(user.id).slice(0, 8));
   }
 
   function injectStyles() {
     if ($('axiom-account-chat-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'axiom-account-chat-styles';
-    style.textContent = `
+    const s = document.createElement('style');
+    s.id = 'axiom-account-chat-styles';
+    s.textContent = `
       .auth-modal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:16px}
       .auth-modal.open{display:flex}
       .auth-card{position:relative;width:min(400px,100%);background:rgba(12,12,20,.98);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:18px;padding:24px 22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
@@ -3136,7 +3141,8 @@ function logoClicked() {
       .auth-tab.active{background:rgba(139,108,255,.2);border-color:rgba(139,108,255,.45);color:#fff}
       .auth-field{margin-bottom:12px}
       .auth-field label{display:block;font-size:.72em;color:var(--muted,#7a7a92);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
-      .auth-field input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
+      .auth-field input{box-sizing:border-box;width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
+      .auth-field input:focus{border-color:rgba(139,108,255,.55)}
       .auth-error{color:#ff6b6b;font-size:.82em;margin:0 0 10px}
       .auth-submit{width:100%;padding:12px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer;font-size:.95em}
       .auth-submit:disabled{opacity:.6;cursor:wait}
@@ -3149,7 +3155,8 @@ function logoClicked() {
       .chat-sub{margin:4px 0 0;font-size:.8em;color:var(--muted,#7a7a92)}
       .chat-messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
       .chat-empty{margin:auto;text-align:center;color:var(--muted,#7a7a92);padding:24px}
-      .chat-row{display:flex}.chat-row.mine{justify-content:flex-end}
+      .chat-row{display:flex}
+      .chat-row.mine{justify-content:flex-end}
       .chat-bubble{max-width:min(520px,88%);background:var(--surface,#0c0c14);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:14px;padding:10px 12px}
       .chat-row.mine .chat-bubble{background:rgba(139,108,255,.18);border-color:rgba(139,108,255,.35)}
       .chat-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
@@ -3157,20 +3164,24 @@ function logoClicked() {
       .chat-time{font-size:.68em;color:var(--muted,#7a7a92)}
       .chat-body{font-size:.92em;line-height:1.45;word-break:break-word;white-space:pre-wrap}
       .chat-composer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border,rgba(255,255,255,.07));background:rgba(8,8,14,.6)}
-      .chat-composer input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
+      .chat-composer input{box-sizing:border-box;flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
+      .chat-composer input:focus{border-color:rgba(139,108,255,.5)}
       .chat-composer button{padding:12px 18px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer}
       .chat-composer button:disabled{opacity:.45;cursor:not-allowed}
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(s);
   }
 
   function ensureAuthUI() {
     if ($('authModal')) return;
-    const modal = el('div', 'auth-modal', `
-      <div class="auth-card" role="dialog" aria-modal="true">
-        <button type="button" class="auth-close" id="authCloseBtn">×</button>
+
+    const modal = el('div', 'auth-modal');
+    modal.id = 'authModal';
+    modal.innerHTML = `
+      <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">×</button>
         <h2 id="authTitle">Sign in to Axiom</h2>
-        <p class="auth-sub">Save your progress and chat with others online.</p>
+        <p class="auth-sub">Create an Axiom account with a username, email, and password.</p>
         <div class="auth-tabs">
           <button type="button" class="auth-tab active" data-tab="login">Login</button>
           <button type="button" class="auth-tab" data-tab="signup">Sign up</button>
@@ -3178,26 +3189,28 @@ function logoClicked() {
         <form id="authForm">
           <div class="auth-field" id="authUsernameWrap" style="display:none">
             <label for="authUsername">Username</label>
-            <input id="authUsername" type="text" maxlength="20" placeholder="cool_player" autocomplete="username">
+            <input id="authUsername" type="text" maxlength="20" placeholder="cool_player" autocomplete="username" />
           </div>
           <div class="auth-field">
             <label for="authEmail">Email</label>
-            <input id="authEmail" type="email" required placeholder="you@email.com" autocomplete="email">
+            <input id="authEmail" type="email" required placeholder="you@email.com" autocomplete="email" />
           </div>
           <div class="auth-field">
             <label for="authPassword">Password</label>
-            <input id="authPassword" type="password" required minlength="8" placeholder="at least 8 characters" autocomplete="current-password">
+            <input id="authPassword" type="password" required minlength="8" placeholder="at least 8 characters" autocomplete="current-password" />
           </div>
           <p class="auth-error" id="authError" hidden></p>
           <button type="submit" class="auth-submit" id="authSubmitBtn">Login</button>
         </form>
-        <p class="auth-hint">Passwords must be at least 8 characters.</p>
-      </div>
-    `);
+        <p class="auth-hint">Password must be at least 8 characters.</p>
+      </div>`;
+
     document.body.appendChild(modal);
 
     $('authCloseBtn').onclick = () => modal.classList.remove('open');
-    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.classList.remove('open');
+    });
 
     modal.querySelectorAll('.auth-tab').forEach(btn => {
       btn.onclick = () => {
@@ -3214,30 +3227,45 @@ function logoClicked() {
 
     $('authForm').onsubmit = async e => {
       e.preventDefault();
+
       const signup = modal.querySelector('.auth-tab.active')?.dataset.tab === 'signup';
       const email = $('authEmail').value.trim();
       const password = $('authPassword').value;
-      const uname = ($('authUsername')?.value || '').trim();
-      const errorEl = $('authError');
+      const uname = ($('authUsername').value || '').trim();
+      const errEl = $('authError');
       const submit = $('authSubmitBtn');
-      errorEl.hidden = true;
+
+      errEl.hidden = true;
       submit.disabled = true;
       submit.textContent = signup ? 'Creating…' : 'Signing in…';
 
       try {
         if (signup) {
           if (!/^[A-Za-z0-9_]{3,20}$/.test(uname)) {
-            throw new Error('Username must be 3–20 letters, numbers, or underscores.');
+            throw new Error('Username: 3–20 letters, numbers, or _.');
           }
+          if (password.length < 8) {
+            throw new Error('Password must be at least 8 characters.');
+          }
+
           const { data, error } = await sb.auth.signUp({
             email,
             password,
             options: { data: { username: uname } }
           });
+
           if (error) throw error;
-          modal.classList.remove('open');
-          if (data.session) toast('Welcome, @' + uname + '!');
-          else toast('Account created. Check your email if confirmation is required.');
+
+          if (data.user && !data.session) {
+            errEl.textContent = 'Account created. Check your email if confirmation is required, then log in.';
+            errEl.hidden = false;
+            modal.querySelector('.auth-tab[data-tab="login"]')?.click();
+            $('authEmail').value = email;
+            $('authPassword').value = '';
+          } else {
+            modal.classList.remove('open');
+            toast('Welcome, @' + uname + '!');
+          }
         } else {
           const { error } = await sb.auth.signInWithPassword({ email, password });
           if (error) throw error;
@@ -3245,8 +3273,11 @@ function logoClicked() {
           toast('Logged in');
         }
       } catch (err) {
-        errorEl.textContent = err?.message || 'Authentication failed.';
-        errorEl.hidden = false;
+        let m = err?.message || 'Authentication failed.';
+        if (/invalid login/i.test(m)) m = 'Wrong email or password.';
+        if (/email not confirmed/i.test(m)) m = 'Please confirm your email before logging in.';
+        errEl.textContent = m;
+        errEl.hidden = false;
       } finally {
         submit.disabled = false;
         const stillSignup = modal.querySelector('.auth-tab.active')?.dataset.tab === 'signup';
@@ -3257,9 +3288,34 @@ function logoClicked() {
 
   function openAuthModal() {
     ensureAuthUI();
-    $('authModal').classList.add('open');
-    setTimeout(() => $('authEmail')?.focus(), 50);
+    const modal = $('authModal');
+    if (!modal) return;
+
+    if (currentUser) {
+      const card = modal.querySelector('.auth-card');
+      card.innerHTML = `
+        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">×</button>
+        <h2>Account</h2>
+        <p class="auth-sub">Your Axiom account information.</p>
+        <div style="padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin:16px 0;">
+          <div style="font-size:.72em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Username</div>
+          <div style="font-size:1.05em;font-weight:700;">@${escapeHtml(username || 'user')}</div>
+          <div style="font-size:.72em;color:var(--muted);text-transform:uppercase;margin:14px 0 5px;">Email</div>
+          <div style="font-size:.9em;word-break:break-all;">${escapeHtml(currentUser.email || '')}</div>
+        </div>
+        <button type="button" class="auth-submit" id="accountLogoutBtn">Log out</button>`;
+      $('authCloseBtn').onclick = () => modal.classList.remove('open');
+      $('accountLogoutBtn').onclick = async () => {
+        await sb.auth.signOut();
+        modal.classList.remove('open');
+      };
+    }
+
+    modal.classList.add('open');
+    if (!currentUser) setTimeout(() => $('authEmail')?.focus(), 50);
   }
+
+  window.axiomOpenAuth = openAuthModal;
 
   function ensureChatUI() {
     if (!$('viewChat')) {
@@ -3278,19 +3334,23 @@ function logoClicked() {
           </div>
           <div class="chat-messages" id="chatMessages"></div>
           <form class="chat-composer" id="chatForm">
-            <input type="text" id="chatInput" maxlength="500" placeholder="Sign in to send…" disabled autocomplete="off">
+            <input type="text" id="chatInput" maxlength="500" placeholder="Sign in to send…" disabled autocomplete="off" />
             <button type="submit" id="chatSendBtn" disabled>Send</button>
           </form>
         </div>`;
+
       const games = $('viewGames');
-      if (games?.parentNode) games.parentNode.insertBefore(section, games.nextSibling);
+      if (games && games.parentNode) games.parentNode.insertBefore(section, games.nextSibling);
       else document.body.appendChild(section);
     }
 
     const loginBtn = $('chatLoginBtn');
     if (loginBtn && !loginBtn.dataset.wired) {
       loginBtn.dataset.wired = '1';
-      loginBtn.onclick = () => currentUser ? logout() : openAuthModal();
+      loginBtn.onclick = async () => {
+        if (currentUser) await sb.auth.signOut();
+        else openAuthModal();
+      };
     }
 
     const form = $('chatForm');
@@ -3302,55 +3362,175 @@ function logoClicked() {
       };
     }
 
-    const accountBtn = $('railAccount');
-    if (accountBtn && !accountBtn.dataset.wiredAccount) {
-      accountBtn.dataset.wiredAccount = '1';
-      accountBtn.onclick = () => currentUser ? logout() : openAuthModal();
+    const acc = $('railAccount');
+    if (acc && !acc.dataset.accountWired) {
+      acc.dataset.accountWired = '1';
+      acc.addEventListener('click', async e => {
+        e.preventDefault();
+        if (currentUser) {
+          if (confirm('Logged in as @' + (username || 'you') + '\n\nOK = Log out')) {
+            await sb.auth.signOut();
+          }
+        } else {
+          openAuthModal();
+        }
+      });
+    }
+
+    const chatRail = $('railChat');
+    if (chatRail && !chatRail.dataset.accountChatWired) {
+      chatRail.dataset.accountChatWired = '1';
+      chatRail.addEventListener('click', () => {
+        setTimeout(scrollBottom, 0);
+      });
     }
   }
 
   function loadCache() {
     try {
       const raw = localStorage.getItem(MSG_CACHE_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
       return Array.isArray(arr) ? arr.slice(-MAX_CACHE) : [];
-    } catch (_) { return []; }
+    } catch (_) {
+      return [];
+    }
   }
 
   function saveCache() {
-    try { localStorage.setItem(MSG_CACHE_KEY, JSON.stringify(messages.slice(-MAX_CACHE))); } catch (_) {}
+    try {
+      localStorage.setItem(MSG_CACHE_KEY, JSON.stringify(messages.slice(-MAX_CACHE)));
+    } catch (_) {}
+  }
+
+  function userPlayerKey(uid) {
+    return 'axiomPlayer_' + uid;
+  }
+
+  function mergePlayerOnLogin(uid) {
+    if (!uid || typeof player === 'undefined') return;
+
+    try {
+      const key = userPlayerKey(uid);
+      const cloudRaw = localStorage.getItem(key);
+
+      if (cloudRaw) {
+        const cloud = JSON.parse(cloudRaw);
+        const localXp = Number(player.xp || 0);
+        const cloudXp = Number(cloud.xp || 0);
+
+        if (cloudXp >= localXp) {
+          player.xp = cloud.xp || 0;
+          player.plays = cloud.plays || 0;
+          if (Array.isArray(cloud.favorites)) player.favorites = cloud.favorites;
+          if (Array.isArray(cloud.achievements)) player.achievements = cloud.achievements;
+          if (typeof savePlayerData === 'function') savePlayerData();
+          if (typeof updateStatsUI === 'function') updateStatsUI();
+        }
+      }
+
+      localStorage.setItem(key, JSON.stringify(player));
+    } catch (_) {}
+  }
+
+  function savePlayerForCurrentUser() {
+    if (!currentUser || typeof player === 'undefined') return;
+    try {
+      localStorage.setItem(userPlayerKey(currentUser.id), JSON.stringify(player));
+    } catch (_) {}
+  }
+
+  setInterval(savePlayerForCurrentUser, 15000);
+
+  function leaveChat() {
+    if (chatChannel) {
+      try { sb.removeChannel(chatChannel); } catch (_) {}
+      chatChannel = null;
+    }
+  }
+
+  function connectChat() {
+    if (chatConnecting || chatChannel) return;
+    chatConnecting = true;
+
+    const statusEl = $('chatStatus');
+    if (statusEl) statusEl.textContent = 'Connecting to chat…';
+
+    chatChannel = sb.channel(CHAT_CHANNEL, {
+      config: { broadcast: { self: true } }
+    });
+
+    chatChannel
+      .on('broadcast', { event: 'msg' }, ({ payload }) => {
+        if (!payload || !payload.body) return;
+        if (payload.id && messages.some(m => m.id === payload.id)) return;
+
+        messages.push(payload);
+        if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
+        saveCache();
+        appendMessage(payload);
+        scrollBottom();
+      })
+      .subscribe(status => {
+        chatConnecting = false;
+        const st = $('chatStatus');
+
+        if (status === 'SUBSCRIBED') {
+          if (st) st.textContent = currentUser
+            ? 'Online as @' + username
+            : 'Connected — login to send';
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          if (st) st.textContent = 'Chat connection error';
+          chatChannel = null;
+          setTimeout(connectChat, 3000);
+        } else if (status === 'CLOSED') {
+          chatChannel = null;
+        }
+      });
+  }
+
+  function joinChat() {
+    leaveChat();
+    connectChat();
   }
 
   function renderMessages() {
     const box = $('chatMessages');
     if (!box) return;
+
     box.innerHTML = '';
+
     if (!messages.length) {
       box.innerHTML = '<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';
       return;
     }
+
     messages.forEach(appendMessage);
     scrollBottom();
   }
 
-  function appendMessage(message) {
+  function appendMessage(m) {
     const box = $('chatMessages');
     if (!box) return;
+
     const empty = box.querySelector('.chat-empty');
     if (empty) empty.remove();
-    const mine = currentUser && message.user_id === currentUser.id;
+
+    const mine = !!(currentUser && m.user_id && m.user_id === currentUser.id);
     const row = el('div', 'chat-row' + (mine ? ' mine' : ''));
-    const time = message.created_at
-      ? new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const time = m.created_at
+      ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '';
+
     row.innerHTML = `
       <div class="chat-bubble">
         <div class="chat-meta">
-          <span class="chat-user">@${escapeHtml(message.username || 'anon')}</span>
+          <span class="chat-user">@${escapeHtml(m.username || 'anon')}</span>
           <span class="chat-time">${escapeHtml(time)}</span>
         </div>
-        <div class="chat-body">${escapeHtml(message.body || '')}</div>
+        <div class="chat-body">${escapeHtml(m.body || '')}</div>
       </div>`;
+
     box.appendChild(row);
   }
 
@@ -3359,74 +3539,51 @@ function logoClicked() {
     if (box) box.scrollTop = box.scrollHeight;
   }
 
-  function disconnectChat() {
-    if (chatChannel && sb) {
-      try { sb.removeChannel(chatChannel); } catch (_) {}
-    }
-    chatChannel = null;
-  }
-
-  function connectChat() {
-    if (!sb) return;
-    disconnectChat();
-
-    chatChannel = sb.channel(CHAT_CHANNEL, {
-      config: { broadcast: { self: true } }
-    });
-
-    chatChannel
-      .on('broadcast', { event: 'msg' }, ({ payload }) => {
-        if (!payload?.body) return;
-        if (payload.id && messages.some(m => m.id === payload.id)) return;
-        messages.push(payload);
-        if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
-        saveCache();
-        appendMessage(payload);
-        scrollBottom();
-      })
-      .subscribe(status => {
-        const st = $('chatStatus');
-        if (status === 'SUBSCRIBED') {
-          if (st) st.textContent = currentUser ? 'Online as @' + currentUser.username : 'Connected — login to send';
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (st) st.textContent = 'Chat connection error';
-        }
-      });
-  }
-
   async function sendMessage() {
     if (!currentUser) {
       openAuthModal();
       return;
     }
+
     const input = $('chatInput');
     const body = (input?.value || '').trim();
     if (!body) return;
-    if (!chatChannel) connectChat();
-    if (!chatChannel) return;
 
-    input.value = '';
+    if (!chatChannel) {
+      connectChat();
+      toast('Connecting to chat… try Send again in a moment.');
+      return;
+    }
+
     const payload = {
       id: (crypto.randomUUID && crypto.randomUUID()) || (String(Date.now()) + Math.random()),
       user_id: currentUser.id,
-      username: currentUser.username,
+      username: username,
       body: body.slice(0, 500),
       created_at: new Date().toISOString()
     };
 
+    input.value = '';
+
     if (!messages.some(m => m.id === payload.id)) {
       messages.push(payload);
-      if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
       saveCache();
       appendMessage(payload);
       scrollBottom();
     }
 
     try {
-      const result = await chatChannel.send({ type: 'broadcast', event: 'msg', payload });
-      if (result?.error) toast(result.error.message || 'Send failed');
-    } catch (err) {
-      toast(err?.message || 'Send failed');
+      const res = await chatChannel.send({
+        type: 'broadcast',
+        event: 'msg',
+        payload
+      });
+
+      if (res && res.error) {
+        toast(res.error.message || 'Send failed');
+      }
+    } catch (e) {
+      toast(e?.message || 'Send failed');
     }
   }
 
@@ -3435,112 +3592,85 @@ function logoClicked() {
     const status = $('chatStatus');
     const input = $('chatInput');
     const send = $('chatSendBtn');
-    const account = $('railAccount');
+    const acc = $('railAccount');
 
     if (currentUser) {
       if (loginBtn) loginBtn.textContent = 'Log out';
-      if (status) status.textContent = 'Online as @' + currentUser.username;
-      if (input) { input.disabled = false; input.placeholder = 'Say something…'; }
+      if (status) status.textContent = 'Online as @' + username;
+      if (input) {
+        input.disabled = false;
+        input.placeholder = 'Say something…';
+      }
       if (send) send.disabled = false;
-      if (account) account.textContent = '@' + currentUser.username;
+      if (acc) acc.textContent = '@' + username;
     } else {
       if (loginBtn) loginBtn.textContent = 'Login';
-      if (status) status.textContent = 'Connected — login to send';
-      if (input) { input.disabled = true; input.placeholder = 'Sign in to send…'; input.value = ''; }
-      if (send) send.disabled = true;
-      if (account) account.textContent = 'Account';
-    }
-  }
-
-  function mergePlayerOnLogin(uid) {
-    if (typeof player === 'undefined') return;
-    try {
-      const key = 'axiomPlayer_' + uid;
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if ((saved.xp || 0) >= (player.xp || 0)) {
-          player.xp = saved.xp || 0;
-          player.plays = saved.plays || 0;
-          if (Array.isArray(saved.favorites)) player.favorites = saved.favorites;
-          if (Array.isArray(saved.achievements)) player.achievements = saved.achievements;
-          if (typeof savePlayerData === 'function') savePlayerData();
-          if (typeof updateStatsUI === 'function') updateStatsUI();
-        }
+      if (status) status.textContent = chatChannel ? 'Connected — login to send' : 'Connecting…';
+      if (input) {
+        input.disabled = true;
+        input.placeholder = 'Sign in to send…';
+        input.value = '';
       }
-      localStorage.setItem(key, JSON.stringify(player));
-    } catch (_) {}
-  }
-
-  function savePlayerForCurrentUser() {
-    if (!currentUser || typeof player === 'undefined') return;
-    try { localStorage.setItem('axiomPlayer_' + currentUser.id, JSON.stringify(player)); } catch (_) {}
-  }
-
-  async function logout() {
-    try {
-      savePlayerForCurrentUser();
-      const { error } = await sb.auth.signOut();
-      if (error) throw error;
-      toast('Logged out');
-    } catch (err) {
-      toast(err?.message || 'Logout failed');
+      if (send) send.disabled = true;
+      if (acc) acc.textContent = 'Account';
     }
   }
 
-  function handleAuthUser(user) {
-    currentUser = user ? {
-      id: user.id,
-      username: getUsername(user),
-      email: user.email || ''
-    } : null;
+  function applyUser(user) {
+    currentUser = user || null;
+    username = getUsernameFromUser(currentUser);
 
-    if (currentUser) mergePlayerOnLogin(currentUser.id);
-    updateAuthUI();
+    if (currentUser) {
+      updateAuthUI();
+      joinChat();
+    } else {
+      updateAuthUI();
+      if (chatChannel) joinChat();
+    }
   }
 
   async function boot() {
-    injectStyles();
-    ensureAuthUI();
-    ensureChatUI();
-    messages = loadCache();
-    renderMessages();
+    try {
+      injectStyles();
+      ensureAuthUI();
+      ensureChatUI();
 
-    if (typeof supabase === 'undefined') {
-      const st = $('chatStatus');
-      if (st) st.textContent = 'Account/chat service unavailable';
-      return;
-    }
+      messages = loadCache();
+      renderMessages();
 
-    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    window.axiomSb = sb;
-    window.connectChat = connectChat;
+      /* Keep the main navigation's existing showView behavior. */
+      if (typeof window.showView === 'function' && !window.showView.__axiomWrapped) {
+        const originalShowView = window.showView;
+        const wrappedShowView = function(name) {
+          originalShowView(name);
+          if (name === 'chat') setTimeout(scrollBottom, 0);
+        };
+        wrappedShowView.__axiomWrapped = true;
+        window.showView = wrappedShowView;
+      }
 
-    sb.auth.onAuthStateChange((_event, session) => {
-      handleAuthUser(session?.user || null);
-      if (!chatChannel) connectChat();
-    });
+      connectChat();
 
-    const { data } = await sb.auth.getSession();
-    handleAuthUser(data?.session?.user || null);
-    connectChat();
+      const { data, error } = await sb.auth.getSession();
+      if (error) {
+        console.error('[Axiom auth] getSession:', error);
+      }
+      applyUser(data?.session?.user || null);
 
-    if (typeof window.showView === 'function' && !window.axiomShowViewWrapped) {
-      const originalShowView = window.showView;
-      window.showView = function(name) {
-        originalShowView(name);
-        if (name === 'chat') setTimeout(scrollBottom, 0);
-      };
-      window.axiomShowViewWrapped = true;
+      sb.auth.onAuthStateChange((_event, session) => {
+        applyUser(session?.user || null);
+      });
+    } catch (e) {
+      console.error('[Axiom auth]', e);
+      const status = $('chatStatus');
+      if (status) status.textContent = 'Account system unavailable';
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      boot().catch(err => console.error('[Axiom account]', err));
-    }, { once: true });
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
   } else {
-    boot().catch(err => console.error('[Axiom account]', err));
+    boot();
   }
 })();
 </script>
