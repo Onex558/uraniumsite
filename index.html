@@ -3085,8 +3085,7 @@ function logoClicked() {
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   window.axiomSb = sb;
 
-  let currentUser = null;
-  let username = null;
+  let username = localStorage.getItem('axiomUsername') || '';
   let chatChannel = null;
   let messages = [];
   let chatConnecting = false;
@@ -3101,578 +3100,91 @@ function logoClicked() {
   }
 
   function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function toast(msg) {
     if (typeof showToast === 'function') return showToast(msg);
     const t = $('achToast');
     if (!t) return;
-    t.textContent = msg;
-    t.classList.add('show');
+    t.textContent = msg; t.classList.add('show');
     clearTimeout(window._toastTimer);
     window._toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
   }
 
-  function getUsernameFromUser(user) {
-    if (!user) return null;
-    return (user.user_metadata && user.user_metadata.username) ||
-      (user.email && user.email.split('@')[0]) ||
-      ('user_' + String(user.id).slice(0, 8));
-  }
-
   function injectStyles() {
-    if ($('axiom-account-chat-styles')) return;
+    if ($('axiom-username-styles')) return;
     const s = document.createElement('style');
-    s.id = 'axiom-account-chat-styles';
+    s.id = 'axiom-username-styles';
     s.textContent = `
       .auth-modal{display:none;position:fixed;inset:0;z-index:20000;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:16px}
       .auth-modal.open{display:flex}
-      .auth-card{position:relative;width:min(400px,100%);background:rgba(12,12,20,.98);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:18px;padding:24px 22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+      .auth-card{position:relative;width:min(380px,100%);background:rgba(12,12,20,.98);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:18px;padding:24px 22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
       .auth-close{position:absolute;top:12px;right:12px;background:transparent;border:1px solid var(--border,rgba(255,255,255,.1));color:var(--text,#fff);width:32px;height:32px;border-radius:8px;cursor:pointer}
       .auth-card h2{margin:0 0 4px;font-size:1.25em;color:var(--primary,#8b6cff)}
       .auth-sub{margin:0 0 16px;font-size:.85em;color:var(--muted,#7a7a92)}
-      .auth-tabs{display:flex;gap:8px;margin-bottom:14px}
-      .auth-tab{flex:1;padding:9px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--surface,#0c0c14);color:var(--muted,#7a7a92);font-weight:700;cursor:pointer;font-family:inherit}
-      .auth-tab.active{background:rgba(139,108,255,.2);border-color:rgba(139,108,255,.45);color:#fff}
       .auth-field{margin-bottom:12px}
       .auth-field label{display:block;font-size:.72em;color:var(--muted,#7a7a92);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
       .auth-field input{box-sizing:border-box;width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
-      .auth-field input:focus{border-color:rgba(139,108,255,.55)}
-      .auth-error{color:#ff6b6b;font-size:.82em;margin:0 0 10px}
       .auth-submit{width:100%;padding:12px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer;font-size:.95em}
-      .auth-submit:disabled{opacity:.6;cursor:wait}
-      .auth-hint{margin:12px 0 0;font-size:.75em;color:var(--muted,#7a7a92);text-align:center}
+      .auth-error{color:#ff6b6b;font-size:.82em;margin:0 0 10px}
       #viewChat{flex-direction:column;padding:72px 28px 48px 150px;gap:0}
       @media(max-width:700px){#viewChat{padding:16px 12px 110px}}
       .chat-shell{display:flex;flex-direction:column;height:min(78vh,720px);background:rgba(12,12,20,.55);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:18px;overflow:hidden}
       .chat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border,rgba(255,255,255,.07));flex-wrap:wrap}
-      .chat-header h1{margin:0;font-size:1.35em;font-weight:800;letter-spacing:-.02em}
-      .chat-sub{margin:4px 0 0;font-size:.8em;color:var(--muted,#7a7a92)}
-      .chat-messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
-      .chat-empty{margin:auto;text-align:center;color:var(--muted,#7a7a92);padding:24px}
-      .chat-row{display:flex}
-      .chat-row.mine{justify-content:flex-end}
-      .chat-bubble{max-width:min(520px,88%);background:var(--surface,#0c0c14);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:14px;padding:10px 12px}
-      .chat-row.mine .chat-bubble{background:rgba(139,108,255,.18);border-color:rgba(139,108,255,.35)}
-      .chat-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
-      .chat-user{font-size:.75em;font-weight:700;color:var(--primary,#8b6cff)}
-      .chat-time{font-size:.68em;color:var(--muted,#7a7a92)}
-      .chat-body{font-size:.92em;line-height:1.45;word-break:break-word;white-space:pre-wrap}
-      .chat-composer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border,rgba(255,255,255,.07));background:rgba(8,8,14,.6)}
-      .chat-composer input{box-sizing:border-box;flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}
-      .chat-composer input:focus{border-color:rgba(139,108,255,.5)}
-      .chat-composer button{padding:12px 18px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer}
-      .chat-composer button:disabled{opacity:.45;cursor:not-allowed}
+      .chat-header h1{margin:0;font-size:1.35em;font-weight:800;letter-spacing:-.02em}.chat-sub{margin:4px 0 0;font-size:.8em;color:var(--muted,#7a7a92)}
+      .chat-messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px}.chat-empty{margin:auto;text-align:center;color:var(--muted,#7a7a92);padding:24px}
+      .chat-row{display:flex}.chat-row.mine{justify-content:flex-end}.chat-bubble{max-width:min(520px,88%);background:var(--surface,#0c0c14);border:1px solid var(--border,rgba(255,255,255,.07));border-radius:14px;padding:10px 12px}
+      .chat-row.mine .chat-bubble{background:rgba(139,108,255,.18);border-color:rgba(139,108,255,.35)}.chat-meta{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}.chat-user{font-size:.75em;font-weight:700;color:var(--primary,#8b6cff)}.chat-time{font-size:.68em;color:var(--muted,#7a7a92)}.chat-body{font-size:.92em;line-height:1.45;word-break:break-word;white-space:pre-wrap}
+      .chat-composer{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border,rgba(255,255,255,.07));background:rgba(8,8,14,.6)}.chat-composer input{box-sizing:border-box;flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.1));background:var(--bg,#05050a);color:var(--text,#fff);font-family:inherit;font-size:.95em;outline:none}.chat-composer button{padding:12px 18px;border:none;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-weight:800;font-family:inherit;cursor:pointer}
     `;
     document.head.appendChild(s);
   }
 
-  function ensureAuthUI() {
+  function ensureUsernameUI() {
     if ($('authModal')) return;
-
-    const modal = el('div', 'auth-modal');
-    modal.id = 'authModal';
-    modal.innerHTML = `
-      <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">×</button>
-        <h2 id="authTitle">Sign in to Axiom</h2>
-        <p class="auth-sub">Create an Axiom account with a username, email, and password.</p>
-        <div class="auth-tabs">
-          <button type="button" class="auth-tab active" data-tab="login">Login</button>
-          <button type="button" class="auth-tab" data-tab="signup">Sign up</button>
-        </div>
-        <form id="authForm">
-          <div class="auth-field" id="authUsernameWrap" style="display:none">
-            <label for="authUsername">Username</label>
-            <input id="authUsername" type="text" maxlength="20" placeholder="cool_player" autocomplete="username" />
-          </div>
-          <div class="auth-field">
-            <label for="authEmail">Email</label>
-            <input id="authEmail" type="email" required placeholder="you@email.com" autocomplete="email" />
-          </div>
-          <div class="auth-field">
-            <label for="authPassword">Password</label>
-            <input id="authPassword" type="password" required minlength="8" placeholder="at least 8 characters" autocomplete="current-password" />
-          </div>
-          <p class="auth-error" id="authError" hidden></p>
-          <button type="submit" class="auth-submit" id="authSubmitBtn">Login</button>
-        </form>
-        <p class="auth-hint">Password must be at least 8 characters.</p>
-      </div>`;
-
+    const modal = el('div', 'auth-modal'); modal.id = 'authModal';
+    modal.innerHTML = `<div class="auth-card"><button type="button" class="auth-close" id="authCloseBtn">×</button><h2>Choose your username</h2><p class="auth-sub">No account, email, or password needed.</p><form id="usernameForm"><div class="auth-field"><label for="authUsername">Username</label><input id="authUsername" type="text" maxlength="20" minlength="3" placeholder="cool_player" autocomplete="off" required></div><p class="auth-error" id="authError" hidden></p><button type="submit" class="auth-submit">Save username</button></form></div>`;
     document.body.appendChild(modal);
-
     $('authCloseBtn').onclick = () => modal.classList.remove('open');
-    modal.addEventListener('click', e => {
-      if (e.target === modal) modal.classList.remove('open');
-    });
-
-    modal.querySelectorAll('.auth-tab').forEach(btn => {
-      btn.onclick = () => {
-        modal.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const signup = btn.dataset.tab === 'signup';
-        $('authUsernameWrap').style.display = signup ? 'block' : 'none';
-        $('authTitle').textContent = signup ? 'Create account' : 'Sign in to Axiom';
-        $('authSubmitBtn').textContent = signup ? 'Sign up' : 'Login';
-        $('authError').hidden = true;
-        $('authPassword').autocomplete = signup ? 'new-password' : 'current-password';
-      };
-    });
-
-    $('authForm').onsubmit = async e => {
-      e.preventDefault();
-
-      const signup = modal.querySelector('.auth-tab.active')?.dataset.tab === 'signup';
-      const email = $('authEmail').value.trim();
-      const password = $('authPassword').value;
-      const uname = ($('authUsername').value || '').trim();
-      const errEl = $('authError');
-      const submit = $('authSubmitBtn');
-
-      errEl.hidden = true;
-      submit.disabled = true;
-      submit.textContent = signup ? 'Creating…' : 'Signing in…';
-
-      try {
-        if (signup) {
-          if (!/^[A-Za-z0-9_]{3,20}$/.test(uname)) {
-            throw new Error('Username: 3–20 letters, numbers, or _.');
-          }
-          if (password.length < 8) {
-            throw new Error('Password must be at least 8 characters.');
-          }
-
-          const { data, error } = await sb.auth.signUp({
-            email,
-            password,
-            options: { data: { username: uname } }
-          });
-
-          if (error) throw error;
-
-          if (data.user && !data.session) {
-            errEl.textContent = 'Account created. Check your email if confirmation is required, then log in.';
-            errEl.hidden = false;
-            modal.querySelector('.auth-tab[data-tab="login"]')?.click();
-            $('authEmail').value = email;
-            $('authPassword').value = '';
-          } else {
-            modal.classList.remove('open');
-            toast('Welcome, @' + uname + '!');
-          }
-        } else {
-          const { error } = await sb.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          modal.classList.remove('open');
-          toast('Logged in');
-        }
-      } catch (err) {
-        let m = err?.message || 'Authentication failed.';
-        if (/invalid login/i.test(m)) m = 'Wrong email or password.';
-        if (/email not confirmed/i.test(m)) m = 'Please confirm your email before logging in.';
-        errEl.textContent = m;
-        errEl.hidden = false;
-      } finally {
-        submit.disabled = false;
-        const stillSignup = modal.querySelector('.auth-tab.active')?.dataset.tab === 'signup';
-        submit.textContent = stillSignup ? 'Sign up' : 'Login';
-      }
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    $('usernameForm').onsubmit = e => {
+      e.preventDefault(); const value = $('authUsername').value.trim();
+      if (!/^[A-Za-z0-9_]{3,20}$/.test(value)) { $('authError').textContent='Use 3–20 letters, numbers, or _. '; $('authError').hidden=false; return; }
+      username = value; localStorage.setItem('axiomUsername', username); modal.classList.remove('open'); updateAuthUI(); toast('Username saved as @' + username);
     };
   }
 
-  function openAuthModal() {
-    ensureAuthUI();
-    const modal = $('authModal');
-    if (!modal) return;
-
-    if (currentUser) {
-      const card = modal.querySelector('.auth-card');
-      card.innerHTML = `
-        <button type="button" class="auth-close" id="authCloseBtn" aria-label="Close">×</button>
-        <h2>Account</h2>
-        <p class="auth-sub">Your Axiom account information.</p>
-        <div style="padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);margin:16px 0;">
-          <div style="font-size:.72em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;">Username</div>
-          <div style="font-size:1.05em;font-weight:700;">@${escapeHtml(username || 'user')}</div>
-          <div style="font-size:.72em;color:var(--muted);text-transform:uppercase;margin:14px 0 5px;">Email</div>
-          <div style="font-size:.9em;word-break:break-all;">${escapeHtml(currentUser.email || '')}</div>
-        </div>
-        <button type="button" class="auth-submit" id="accountLogoutBtn">Log out</button>`;
-      $('authCloseBtn').onclick = () => modal.classList.remove('open');
-      $('accountLogoutBtn').onclick = async () => {
-        await sb.auth.signOut();
-        modal.classList.remove('open');
-      };
-    }
-
-    modal.classList.add('open');
-    if (!currentUser) setTimeout(() => $('authEmail')?.focus(), 50);
+  function openUsernameModal() {
+    ensureUsernameUI(); $('authUsername').value = username; $('authError').hidden = true; $('authModal').classList.add('open'); setTimeout(() => $('authUsername')?.focus(), 50);
   }
-
-  window.axiomOpenAuth = openAuthModal;
+  window.axiomOpenAuth = openUsernameModal;
 
   function ensureChatUI() {
     if (!$('viewChat')) {
-      const section = el('section', 'view');
-      section.id = 'viewChat';
-      section.innerHTML = `
-        <div class="chat-shell">
-          <div class="chat-header">
-            <div>
-              <h1>Axiom Chat</h1>
-              <p class="chat-sub" id="chatStatus">Connecting…</p>
-            </div>
-            <div class="chat-header-actions">
-              <button type="button" class="tool-btn" id="chatLoginBtn">Login</button>
-            </div>
-          </div>
-          <div class="chat-messages" id="chatMessages"></div>
-          <form class="chat-composer" id="chatForm">
-            <input type="text" id="chatInput" maxlength="500" placeholder="Sign in to send…" disabled autocomplete="off" />
-            <button type="submit" id="chatSendBtn" disabled>Send</button>
-          </form>
-        </div>`;
-
-      const games = $('viewGames');
-      if (games && games.parentNode) games.parentNode.insertBefore(section, games.nextSibling);
-      else document.body.appendChild(section);
+      const section = el('section','view'); section.id='viewChat';
+      section.innerHTML=`<div class="chat-shell"><div class="chat-header"><div><h1>Axiom Chat</h1><p class="chat-sub" id="chatStatus">Connecting…</p></div><div class="chat-header-actions"><button type="button" class="tool-btn" id="chatLoginBtn">${username ? '@'+escapeHtml(username) : 'Set username'}</button></div></div><div class="chat-messages" id="chatMessages"></div><form class="chat-composer" id="chatForm"><input type="text" id="chatInput" maxlength="500" placeholder="Set a username to send…" autocomplete="off"><button type="submit" id="chatSendBtn">Send</button></form></div>`;
+      const games=$('viewGames'); if(games&&games.parentNode) games.parentNode.insertBefore(section,games.nextSibling); else document.body.appendChild(section);
     }
-
-    const loginBtn = $('chatLoginBtn');
-    if (loginBtn && !loginBtn.dataset.wired) {
-      loginBtn.dataset.wired = '1';
-      loginBtn.onclick = async () => {
-        if (currentUser) await sb.auth.signOut();
-        else openAuthModal();
-      };
-    }
-
-    const form = $('chatForm');
-    if (form && !form.dataset.wired) {
-      form.dataset.wired = '1';
-      form.onsubmit = async e => {
-        e.preventDefault();
-        await sendMessage();
-      };
-    }
-
-    const acc = $('railAccount');
-    if (acc && !acc.dataset.accountWired) {
-      acc.dataset.accountWired = '1';
-      acc.addEventListener('click', async e => {
-        e.preventDefault();
-        if (currentUser) {
-          if (confirm('Logged in as @' + (username || 'you') + '\n\nOK = Log out')) {
-            await sb.auth.signOut();
-          }
-        } else {
-          openAuthModal();
-        }
-      });
-    }
-
-    const chatRail = $('railChat');
-    if (chatRail && !chatRail.dataset.accountChatWired) {
-      chatRail.dataset.accountChatWired = '1';
-      chatRail.addEventListener('click', () => {
-        setTimeout(scrollBottom, 0);
-      });
-    }
+    const loginBtn=$('chatLoginBtn'); if(loginBtn&&!loginBtn.dataset.wired){loginBtn.dataset.wired='1';loginBtn.onclick=()=>openUsernameModal();}
+    const form=$('chatForm'); if(form&&!form.dataset.wired){form.dataset.wired='1';form.onsubmit=async e=>{e.preventDefault();await sendMessage();};}
+    const acc=$('railAccount'); if(acc&&!acc.dataset.accountWired){acc.dataset.accountWired='1';acc.addEventListener('click',e=>{e.preventDefault();openUsernameModal();});}
+    const chatRail=$('railChat'); if(chatRail&&!chatRail.dataset.accountChatWired){chatRail.dataset.accountChatWired='1';chatRail.addEventListener('click',()=>setTimeout(scrollBottom,0));}
   }
 
-  function loadCache() {
-    try {
-      const raw = localStorage.getItem(MSG_CACHE_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr.slice(-MAX_CACHE) : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function saveCache() {
-    try {
-      localStorage.setItem(MSG_CACHE_KEY, JSON.stringify(messages.slice(-MAX_CACHE)));
-    } catch (_) {}
-  }
-
-  function userPlayerKey(uid) {
-    return 'axiomPlayer_' + uid;
-  }
-
-  function mergePlayerOnLogin(uid) {
-    if (!uid || typeof player === 'undefined') return;
-
-    try {
-      const key = userPlayerKey(uid);
-      const cloudRaw = localStorage.getItem(key);
-
-      if (cloudRaw) {
-        const cloud = JSON.parse(cloudRaw);
-        const localXp = Number(player.xp || 0);
-        const cloudXp = Number(cloud.xp || 0);
-
-        if (cloudXp >= localXp) {
-          player.xp = cloud.xp || 0;
-          player.plays = cloud.plays || 0;
-          if (Array.isArray(cloud.favorites)) player.favorites = cloud.favorites;
-          if (Array.isArray(cloud.achievements)) player.achievements = cloud.achievements;
-          if (typeof savePlayerData === 'function') savePlayerData();
-          if (typeof updateStatsUI === 'function') updateStatsUI();
-        }
-      }
-
-      localStorage.setItem(key, JSON.stringify(player));
-    } catch (_) {}
-  }
-
-  function savePlayerForCurrentUser() {
-    if (!currentUser || typeof player === 'undefined') return;
-    try {
-      localStorage.setItem(userPlayerKey(currentUser.id), JSON.stringify(player));
-    } catch (_) {}
-  }
-
-  setInterval(savePlayerForCurrentUser, 15000);
-
-  function leaveChat() {
-    if (chatChannel) {
-      try { sb.removeChannel(chatChannel); } catch (_) {}
-      chatChannel = null;
-    }
-  }
-
-  function connectChat() {
-    if (chatConnecting || chatChannel) return;
-    chatConnecting = true;
-
-    const statusEl = $('chatStatus');
-    if (statusEl) statusEl.textContent = 'Connecting to chat…';
-
-    chatChannel = sb.channel(CHAT_CHANNEL, {
-      config: { broadcast: { self: true } }
-    });
-
-    chatChannel
-      .on('broadcast', { event: 'msg' }, ({ payload }) => {
-        if (!payload || !payload.body) return;
-        if (payload.id && messages.some(m => m.id === payload.id)) return;
-
-        messages.push(payload);
-        if (messages.length > MAX_CACHE) messages = messages.slice(-MAX_CACHE);
-        saveCache();
-        appendMessage(payload);
-        scrollBottom();
-      })
-      .subscribe(status => {
-        chatConnecting = false;
-        const st = $('chatStatus');
-
-        if (status === 'SUBSCRIBED') {
-          if (st) st.textContent = currentUser
-            ? 'Online as @' + username
-            : 'Connected — login to send';
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          if (st) st.textContent = 'Chat connection error';
-          chatChannel = null;
-          setTimeout(connectChat, 3000);
-        } else if (status === 'CLOSED') {
-          chatChannel = null;
-        }
-      });
-  }
-
-  function joinChat() {
-    leaveChat();
-    connectChat();
-  }
-
-  function renderMessages() {
-    const box = $('chatMessages');
-    if (!box) return;
-
-    box.innerHTML = '';
-
-    if (!messages.length) {
-      box.innerHTML = '<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';
-      return;
-    }
-
-    messages.forEach(appendMessage);
-    scrollBottom();
-  }
-
-  function appendMessage(m) {
-    const box = $('chatMessages');
-    if (!box) return;
-
-    const empty = box.querySelector('.chat-empty');
-    if (empty) empty.remove();
-
-    const mine = !!(currentUser && m.user_id && m.user_id === currentUser.id);
-    const row = el('div', 'chat-row' + (mine ? ' mine' : ''));
-    const time = m.created_at
-      ? new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : '';
-
-    row.innerHTML = `
-      <div class="chat-bubble">
-        <div class="chat-meta">
-          <span class="chat-user">@${escapeHtml(m.username || 'anon')}</span>
-          <span class="chat-time">${escapeHtml(time)}</span>
-        </div>
-        <div class="chat-body">${escapeHtml(m.body || '')}</div>
-      </div>`;
-
-    box.appendChild(row);
-  }
-
-  function scrollBottom() {
-    const box = $('chatMessages');
-    if (box) box.scrollTop = box.scrollHeight;
-  }
-
-  async function sendMessage() {
-    if (!currentUser) {
-      openAuthModal();
-      return;
-    }
-
-    const input = $('chatInput');
-    const body = (input?.value || '').trim();
-    if (!body) return;
-
-    if (!chatChannel) {
-      connectChat();
-      toast('Connecting to chat… try Send again in a moment.');
-      return;
-    }
-
-    const payload = {
-      id: (crypto.randomUUID && crypto.randomUUID()) || (String(Date.now()) + Math.random()),
-      user_id: currentUser.id,
-      username: username,
-      body: body.slice(0, 500),
-      created_at: new Date().toISOString()
-    };
-
-    input.value = '';
-
-    if (!messages.some(m => m.id === payload.id)) {
-      messages.push(payload);
-      saveCache();
-      appendMessage(payload);
-      scrollBottom();
-    }
-
-    try {
-      const res = await chatChannel.send({
-        type: 'broadcast',
-        event: 'msg',
-        payload
-      });
-
-      if (res && res.error) {
-        toast(res.error.message || 'Send failed');
-      }
-    } catch (e) {
-      toast(e?.message || 'Send failed');
-    }
-  }
-
-  function updateAuthUI() {
-    const loginBtn = $('chatLoginBtn');
-    const status = $('chatStatus');
-    const input = $('chatInput');
-    const send = $('chatSendBtn');
-    const acc = $('railAccount');
-
-    if (currentUser) {
-      if (loginBtn) loginBtn.textContent = 'Log out';
-      if (status) status.textContent = 'Online as @' + username;
-      if (input) {
-        input.disabled = false;
-        input.placeholder = 'Say something…';
-      }
-      if (send) send.disabled = false;
-      if (acc) acc.textContent = '@' + username;
-    } else {
-      if (loginBtn) loginBtn.textContent = 'Login';
-      if (status) status.textContent = chatChannel ? 'Connected — login to send' : 'Connecting…';
-      if (input) {
-        input.disabled = true;
-        input.placeholder = 'Sign in to send…';
-        input.value = '';
-      }
-      if (send) send.disabled = true;
-      if (acc) acc.textContent = 'Account';
-    }
-  }
-
-  function applyUser(user) {
-    currentUser = user || null;
-    username = getUsernameFromUser(currentUser);
-
-    if (currentUser) {
-      updateAuthUI();
-      joinChat();
-    } else {
-      updateAuthUI();
-      if (chatChannel) joinChat();
-    }
-  }
-
-  async function boot() {
-    try {
-      injectStyles();
-      ensureAuthUI();
-      ensureChatUI();
-
-      messages = loadCache();
-      renderMessages();
-
-      /* Keep the main navigation's existing showView behavior. */
-      if (typeof window.showView === 'function' && !window.showView.__axiomWrapped) {
-        const originalShowView = window.showView;
-        const wrappedShowView = function(name) {
-          originalShowView(name);
-          if (name === 'chat') setTimeout(scrollBottom, 0);
-        };
-        wrappedShowView.__axiomWrapped = true;
-        window.showView = wrappedShowView;
-      }
-
-      connectChat();
-
-      const { data, error } = await sb.auth.getSession();
-      if (error) {
-        console.error('[Axiom auth] getSession:', error);
-      }
-      applyUser(data?.session?.user || null);
-
-      sb.auth.onAuthStateChange((_event, session) => {
-        applyUser(session?.user || null);
-      });
-    } catch (e) {
-      console.error('[Axiom auth]', e);
-      const status = $('chatStatus');
-      if (status) status.textContent = 'Account system unavailable';
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
+  function loadCache(){try{const raw=localStorage.getItem(MSG_CACHE_KEY);if(!raw)return[];const arr=JSON.parse(raw);return Array.isArray(arr)?arr.slice(-MAX_CACHE):[];}catch(_){return[];}}
+  function saveCache(){try{localStorage.setItem(MSG_CACHE_KEY,JSON.stringify(messages.slice(-MAX_CACHE)));}catch(_){} }
+  function scrollBottom(){const box=$('chatMessages');if(box)box.scrollTop=box.scrollHeight;}
+  function leaveChat(){if(chatChannel){try{sb.removeChannel(chatChannel);}catch(_){}chatChannel=null;}}
+  function connectChat(){if(chatConnecting||chatChannel)return;chatConnecting=true;const st=$('chatStatus');if(st)st.textContent='Connecting to chat…';chatChannel=sb.channel(CHAT_CHANNEL,{config:{broadcast:{self:true}}});chatChannel.on('broadcast',{event:'msg'},({payload})=>{if(!payload||!payload.body)return;if(payload.id&&messages.some(m=>m.id===payload.id))return;messages.push(payload);if(messages.length>MAX_CACHE)messages=messages.slice(-MAX_CACHE);saveCache();appendMessage(payload);scrollBottom();}).subscribe(status=>{chatConnecting=false;const el=$('chatStatus');if(status==='SUBSCRIBED'){if(el)el.textContent=username?'Online as @'+username:'Connected — set a username to send';}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(el)el.textContent='Chat connection error';chatChannel=null;setTimeout(connectChat,3000);}else if(status==='CLOSED')chatChannel=null;});}
+  function renderMessages(){const box=$('chatMessages');if(!box)return;box.innerHTML='';if(!messages.length){box.innerHTML='<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';return;}messages.forEach(appendMessage);scrollBottom();}
+  function appendMessage(m){const box=$('chatMessages');if(!box)return;const empty=box.querySelector('.chat-empty');if(empty)empty.remove();const mine=!!(username&&m.username===username);const row=el('div','chat-row'+(mine?' mine':''));const time=m.created_at?new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';row.innerHTML=`<div class="chat-bubble"><div class="chat-meta"><span class="chat-user">@${escapeHtml(m.username||'user')}</span><span class="chat-time">${time}</span></div><div class="chat-body">${escapeHtml(m.body||'')}</div></div>`;box.appendChild(row);}
+  async function sendMessage(){if(!username){openUsernameModal();return;}const input=$('chatInput');const body=(input?.value||'').trim();if(!body)return;if(!chatChannel){connectChat();toast('Connecting to chat… try again in a moment.');return;}const payload={id:(crypto.randomUUID&&crypto.randomUUID())||(String(Date.now())+Math.random()),username:username,body:body.slice(0,500),created_at:new Date().toISOString()};input.value='';if(!messages.some(m=>m.id===payload.id)){messages.push(payload);saveCache();appendMessage(payload);scrollBottom();}try{const res=await chatChannel.send({type:'broadcast',event:'msg',payload});if(res&&res.error)toast(res.error.message||'Send failed');}catch(e){toast(e?.message||'Send failed');}}
+  function updateAuthUI(){const btn=$('chatLoginBtn'),status=$('chatStatus'),input=$('chatInput'),send=$('chatSendBtn'),acc=$('railAccount');if(btn)btn.textContent=username?'@'+username:'Set username';if(status&&chatChannel)status.textContent=username?'Online as @'+username:'Connected — set a username to send';if(input){input.placeholder=username?'Say something…':'Set a username to send…';}if(acc)acc.textContent=username?'@'+username:'Username';}
+  async function boot(){try{injectStyles();ensureUsernameUI();ensureChatUI();messages=loadCache();renderMessages();if(typeof window.showView==='function'&&!window.showView.__axiomWrapped){const originalShowView=window.showView;const wrapped=function(name){originalShowView(name);if(name==='chat')setTimeout(scrollBottom,0);};wrapped.__axiomWrapped=true;window.showView=wrapped;}connectChat();updateAuthUI();}catch(e){console.error('[Axiom username]',e);const st=$('chatStatus');if(st)st.textContent='Chat unavailable';}}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
+
 </script>
 
 </body>
