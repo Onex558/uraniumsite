@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -339,6 +340,7 @@ body::after{
 }
 .src-badge.src-noah{ color:#a78bfa; }
 .src-badge.src-gnmath{ color:#7dd3fc; }
+.src-badge.src-lumin{ color:#34d399; }
 .play-overlay{
   position:absolute; inset:0; z-index:3;
   display:flex; align-items:center; justify-content:center;
@@ -913,6 +915,7 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
           <button type="button" data-source="axiom">Axiom</button>
           <button type="button" data-source="gnmath">GN Math</button>
           <button type="button" data-source="noah">Noah's Hub</button>
+          <button type="button" data-source="lumin">Lumin</button>
         </div>
       </div>
     </div>
@@ -923,6 +926,7 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
       <span class="section-title">All Games</span>
       <span id="gameCount" class="game-count">- Games</span>
     </div>
+    <!-- Normal Axiom / GN / Noah grid -->
     <div class="games-grid" id="gamesGrid">
       <div class="loading-state">
         <div class="spinner"></div>
@@ -1383,7 +1387,8 @@ function addToRecent(game) {
  author: game.author || 'Unknown',
  resolvedCover: game.resolvedCover || '',
  resolvedUrl: game.resolvedUrl || '',
- source: game.source || 'axiom'
+ source: game.source || 'axiom',
+ luminId: game.luminId || null
  };
  player.recent = player.recent.filter(r => (r.name + '|' + r.resolvedUrl).toLowerCase() !== (entry.name + '|' + entry.resolvedUrl).toLowerCase());
  player.recent.unshift(entry);
@@ -1418,6 +1423,175 @@ const externalSources = [
  sourceTag: "gnmath"
  }
 ];
+
+/* ========== LUMIN SDK (official UI + proxy) ========== */
+let luminReady = false;
+let luminInitPromise = null;
+
+async function initLumin() {
+  if (luminReady) return true;
+  if (typeof Lumin === 'undefined') {
+    console.warn('[Lumin] SDK not loaded');
+    return false;
+  }
+  if (luminInitPromise) return luminInitPromise;
+
+  luminInitPromise = (async () => {
+    try {
+      // headless used only for getGameUrl when needed
+      await Lumin.init({
+        headless: true,
+        onError: (err) => console.warn('[Lumin]', err?.message || err)
+      });
+      luminReady = true;
+      return true;
+    } catch (e) {
+      console.warn('[Lumin] init failed', e);
+      luminReady = false;
+      return false;
+    }
+  })();
+
+  return luminInitPromise;
+}
+
+async function fetchLuminSource() {
+  const ok = await initLumin();
+  if (!ok) return [];
+
+  try {
+    // First page to learn total pages
+    const first = await Lumin.getGames({ page: 1, limit: 50 });
+    let allRaw = Array.isArray(first?.games) ? first.games.slice() : [];
+    const totalPages = Math.max(1, first?.pages || 1);
+    const totalGames = first?.total || allRaw.length;
+
+    if (statusLine) {
+      statusLine.textContent = 'Loading games (1/' + totalPages + ')...';
+    }
+
+    // Fetch remaining pages concurrently so a large Lumin library loads much faster.
+    if (totalPages > 1) {
+      const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+      const pageResults = await Promise.all(pageNumbers.map(async (page) => {
+        try {
+          const res = await Lumin.getGames({ page, limit: 50 });
+          return Array.isArray(res?.games) ? res.games : [];
+        } catch (e) {
+          console.warn('[games] page ' + page + ' failed', e);
+          return [];
+        }
+      }));
+      for (const games of pageResults) allRaw.push(...games);
+    }
+
+    // Deduplicate by id
+    const seenIds = new Set();
+    const filtered = [];
+    for (const g of allRaw) {
+      if (!g || !g.id || seenIds.has(g.id)) continue;
+      seenIds.add(g.id);
+      filtered.push(g);
+    }
+
+    // Resolve cover images in batches
+    const results = [];
+    const batchSize = 16;
+
+    for (let i = 0; i < filtered.length; i += batchSize) {
+      const batch = filtered.slice(i, i + batchSize);
+      const resolved = await Promise.all(batch.map(async (g) => {
+        let cover = '';
+        try {
+          if (g.image_token && typeof Lumin.getImageUrl === 'function') {
+            cover = await Lumin.getImageUrl(g.image_token);
+          } else if (g.image || g.cover || g.thumbnail) {
+            cover = g.image || g.cover || g.thumbnail;
+          }
+        } catch (_) {}
+
+        return {
+          name: g.name || g.id,
+          author: '',
+          resolvedCover: cover || '',
+          resolvedUrl: null,
+          luminId: g.id,
+          source: 'lumin',
+          special: []
+        };
+      }));
+      results.push(...resolved);
+
+      if (statusLine && filtered.length > 40) {
+        statusLine.textContent = 'Loading covers (' + Math.min(i + batchSize, filtered.length) + '/' + filtered.length + ')...';
+      }
+    }
+
+    console.log('[games] loaded extra', results.length, '(API total:', totalGames + ')');
+    return results;
+  } catch (err) {
+    console.warn('[games] extra source failed', err);
+    return [];
+  }
+}
+
+async function openLuminGame(game) {
+  if (!game?.luminId) {
+    if (typeof showToast === 'function') showToast('Could not open game');
+    return;
+  }
+
+  const ok = await initLumin();
+  if (!ok) {
+    if (typeof showToast === 'function') showToast('Game source unavailable');
+    return;
+  }
+
+  try {
+    if (statusLine) statusLine.textContent = 'Loading ' + (game.name || 'game') + '...';
+
+    const result = await Lumin.getGameUrl(game.luminId);
+    const url = result?.url;
+    if (!url) throw new Error('No URL returned');
+
+    addToRecent(game);
+    const proxied = buildProxySrc(url);
+
+    if (settings.openAboutBlank) {
+      openGameInAboutBlank(game.name || 'Game', proxied);
+    } else {
+      // Same modal as other games — no proxy browser chrome, just the game iframe
+      proxyMode = false;
+      showProxyBar(false);
+      activeSessionName = game.name || 'Game';
+      activeSessionUrl = proxied;
+      hideModalError();
+      gameFrame.src = 'about:blank';
+      gameModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      gameModal.classList.add('open');
+      gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized');
+      resetModalChrome();
+      showModalChrome();
+      // Load proxied URL directly (don't fetch/blob — proxy pages aren't plain HTML)
+      gameFrame.src = proxied;
+    }
+
+    if (statusLine) {
+      statusLine.textContent = settings.stealth
+        ? `${allGames.length} resources`
+        : `${allGames.length} games ready`;
+    }
+  } catch (err) {
+    console.warn('[games] open failed', err);
+    if (typeof showToast === 'function') showToast('Could not load this game');
+    if (statusLine) {
+      statusLine.textContent = settings.stealth
+        ? `${allGames.length} resources`
+        : `${allGames.length} games ready`;
+    }
+  }
+}
 
 /* ========== FULL GAME LIST ========== */
 const customGames = [
@@ -1753,50 +1927,94 @@ function updateClock() {
  }
 }
 
-/* ========== RENDER ========== */
+/* ========== RENDER (with Show more) ========== */
+const GAMES_PAGE_SIZE = 48;
+let displayedGamesList = [];
+let displayedCount = 0;
+
+function createGameCard(game, i) {
+  const card = document.createElement('a');
+  card.href = '#';
+  card.className = 'game-card';
+  card.style.animationDelay = (Math.min(i, 24) * 0.02) + 's';
+  const src = game.source || 'axiom';
+  const srcLabel = src === 'gnmath' ? 'GN Math' : src === 'noah' ? "Noah's" : src === 'lumin' ? 'Lumin' : 'Axiom';
+  const fav = isFavorite(game);
+  const favClass = fav ? 'favorited' : '';
+  const favIcon = fav ? '*' : '*';
+  const safeName = (game.name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const safeAuthor = (game.author || 'Unknown').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  card.innerHTML = `
+    <div class="game-image">
+      <button type="button" class="fav-btn ${favClass}" title="Favorite" aria-label="Favorite">${favIcon}</button>
+      <span class="src-badge src-${src}">${srcLabel}</span>
+      <div class="play-overlay"><span class="play-icon">></span></div>
+      <img src="${game.resolvedCover || ''}" alt="${safeName}" loading="lazy"
+        onerror="this.style.display='none';this.parentElement.querySelector('.fallback').style.display='flex';">
+      <div class="fallback">${safeName}</div>
+    </div>
+    <div class="game-info">
+      <div class="game-title">${safeName}</div>
+      <div class="game-author">${safeAuthor}</div>
+    </div>`;
+  const favBtn = card.querySelector('.fav-btn');
+  favBtn.onclick = e => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(game, favBtn);
+  };
+  card.onclick = e => { e.preventDefault(); openGame(game); };
+  return card;
+}
+
+function updateShowMoreBtn() {
+  let btn = document.getElementById('showMoreGamesBtn');
+  if (displayedCount >= displayedGamesList.length) {
+    if (btn) btn.remove();
+    return;
+  }
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'showMoreGamesBtn';
+    btn.type = 'button';
+    btn.className = 'tool-btn';
+    btn.style.cssText = 'grid-column:1/-1;width:100%;max-width:320px;margin:18px auto 8px;display:block;padding:14px 20px;font-size:0.9em;';
+    btn.onclick = () => {
+      const next = displayedGamesList.slice(displayedCount, displayedCount + GAMES_PAGE_SIZE);
+      const frag = document.createDocumentFragment();
+      next.forEach((game, i) => frag.appendChild(createGameCard(game, displayedCount + i)));
+      // insert before the button
+      gamesGrid.insertBefore(frag, btn);
+      displayedCount += next.length;
+      updateShowMoreBtn();
+      // scroll the button into a comfortable spot
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    };
+    gamesGrid.appendChild(btn);
+  }
+  const remaining = displayedGamesList.length - displayedCount;
+  btn.textContent = remaining <= GAMES_PAGE_SIZE
+    ? 'Show ' + remaining + ' more'
+    : 'Show more (' + remaining + ' left)';
+}
+
 function renderGames(list) {
- gameCountEl.textContent = list.length + (list.length === 1 ? ' game' : ' games');
- gamesGrid.innerHTML = '';
- if (list.length === 0) {
- gamesGrid.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>No games found</div><div style="font-size:0.85em;margin-top:6px;opacity:0.7;">Try another filter or search</div></div>';
- return;
- }
- const frag = document.createDocumentFragment();
- list.forEach((game, i) => {
- const card = document.createElement('a');
- card.href = '#';
- card.className = 'game-card';
- card.style.animationDelay = (Math.min(i, 24) * 0.02) + 's';
- const src = game.source || 'axiom';
- const srcLabel = src === 'gnmath' ? 'GN Math' : src === 'noah' ? "Noah's" : 'Axiom';
- const fav = isFavorite(game);
- const favClass = fav ? 'favorited' : '';
- const favIcon = fav ? '*' : '*';
- const safeName = (game.name || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
- const safeAuthor = (game.author || 'Unknown').replace(/</g,'&lt;').replace(/>/g,'&gt;');
- card.innerHTML = `
- <div class="game-image">
- <button type="button" class="fav-btn ${favClass}" title="Favorite" aria-label="Favorite">${favIcon}</button>
- <span class="src-badge src-${src}">${srcLabel}</span>
- <div class="play-overlay"><span class="play-icon">></span></div>
- <img src="${game.resolvedCover || ''}" alt="${safeName}" loading="lazy"
- onerror="this.style.display='none';this.parentElement.querySelector('.fallback').style.display='flex';">
- <div class="fallback">${safeName}</div>
- </div>
- <div class="game-info">
- <div class="game-title">${safeName}</div>
- <div class="game-author">${safeAuthor}</div>
- </div>`;
- const favBtn = card.querySelector('.fav-btn');
- favBtn.onclick = e => {
- e.preventDefault();
- e.stopPropagation();
- toggleFavorite(game, favBtn);
- };
- card.onclick = e => { e.preventDefault(); openGame(game); };
- frag.appendChild(card);
- });
- gamesGrid.appendChild(frag);
+  displayedGamesList = list || [];
+  displayedCount = 0;
+  gameCountEl.textContent = list.length + (list.length === 1 ? ' game' : ' games');
+  gamesGrid.innerHTML = '';
+
+  if (list.length === 0) {
+    gamesGrid.innerHTML = '<div class="loading-state"><div class="spinner"></div><div>No games found</div><div style="font-size:0.85em;margin-top:6px;opacity:0.7;">Try another filter or search</div></div>';
+    return;
+  }
+
+  const firstBatch = list.slice(0, GAMES_PAGE_SIZE);
+  const frag = document.createDocumentFragment();
+  firstBatch.forEach((game, i) => frag.appendChild(createGameCard(game, i)));
+  gamesGrid.appendChild(frag);
+  displayedCount = firstBatch.length;
+  updateShowMoreBtn();
 }
 
 function buildFilterBar() {
@@ -1822,7 +2040,8 @@ function buildFilterBar() {
 function handleSearch() {
  const query = searchInput.value.toLowerCase().trim();
  if (clearSearchBtn) clearSearchBtn.style.display = query ? 'block' : 'none';
- 
+
+ // All sources, including Lumin, use the same Axiom game grid.
  let results = allGames;
 
  if (currentFilter === 'favorites') {
@@ -1916,42 +2135,57 @@ async function fetchNoahSource() {
 }
 
 async function loadAllSources() {
- statusLine.textContent = 'Loading games...';
- const axiomGames = customGames.map(g => ({
- ...g,
- source: 'axiom',
- special: g.special || []
- }));
+  statusLine.textContent = 'Loading games...';
 
- const externalLists = await Promise.all(
- externalSources.map(src => fetchGnMathSource(src))
- );
- const gnGames = externalLists.flat();
- const noahGames = await fetchNoahSource();
+  const axiomGames = customGames.map(g => ({
+    ...g,
+    source: 'axiom',
+    special: g.special || []
+  }));
 
- allGames = [...axiomGames, ...gnGames, ...noahGames];
+  // Load the normal sources together instead of waiting on each one.
+  const [externalLists, noahGames] = await Promise.all([
+    Promise.all(externalSources.map(src => fetchGnMathSource(src))),
+    fetchNoahSource()
+  ]);
 
- const unique = [];
- const seen = new Set();
- for (const item of allGames) {
- const key = (item.name + '|' + item.resolvedUrl).toLowerCase();
- if (!seen.has(key)) {
- seen.add(key);
- unique.push(item);
- }
- }
- allGames = unique;
+  const gnGames = externalLists.flat();
+  const baseGames = [...axiomGames, ...gnGames, ...noahGames];
 
- try {
- localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
- } catch (_) {}
+  // Show Axiom/GN Math/Noah immediately. Lumin loads in the background so
+  // a slow Lumin API can never hold up the main game grid.
+  allGames = dedupeGames(baseGames);
+  try { localStorage.setItem('axiomGamesCache', JSON.stringify(allGames)); } catch (_) {}
+  statusLine.textContent = settings.stealth
+    ? `${allGames.length} resources`
+    : `${allGames.length} games ready`;
+  buildFilterBar();
+  handleSearch();
 
- statusLine.textContent = settings.stealth
- ? `${allGames.length} resources`
- : `${allGames.length} games ready`;
+  // Lumin is still a normal source, but it is non-blocking.
+  fetchLuminSource().then(luminGames => {
+    if (!Array.isArray(luminGames) || !luminGames.length) return;
+    allGames = dedupeGames([...allGames, ...luminGames]);
+    try { localStorage.setItem('axiomGamesCache', JSON.stringify(allGames)); } catch (_) {}
+    statusLine.textContent = settings.stealth
+      ? `${allGames.length} resources`
+      : `${allGames.length} games ready`;
+    buildFilterBar();
+    handleSearch();
+  }).catch(err => console.warn('[games] background Lumin load failed', err));
+}
 
- buildFilterBar();
- handleSearch();
+function dedupeGames(games) {
+  const unique = [];
+  const seen = new Set();
+  for (const item of games) {
+    const key = (item.name + '|' + (item.resolvedUrl || item.luminId || '')).toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(item);
+    }
+  }
+  return unique;
 }
 
 /* ========== GAME / APP / LINKS OPENING ========== */
@@ -2372,6 +2606,12 @@ function renderBookmarks() {
 loadBookmarks();
 
 function openGame(game) {
+ // Lumin games open through the proxy via getGameUrl
+ if (game.source === 'lumin' && game.luminId) {
+ openLuminGame(game);
+ return;
+ }
+
  proxyMode = false;
  showProxyBar(false);
  addToRecent(game);
@@ -3227,6 +3467,7 @@ window.addEventListener('load', () => {
  updateStatsUI();
  loadAllSources();
  /* weather removed */
+
 });
 </script>
 
@@ -3264,6 +3505,7 @@ function logoClicked() {
 
 </script>
 
+<script src="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
