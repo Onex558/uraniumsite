@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -515,6 +516,10 @@ body::after{
 #gameFrame,#linksFrame{
   display:block; width:94vw; height:86vh; max-width:1400px; max-height:900px;
   border:1px solid rgba(var(--primary-rgb),0.25); border-radius:14px; background:#000;
+  min-width:280px; min-height:200px;
+}
+#gameModal.open #gameFrame{
+  display:block !important; visibility:visible !important; opacity:1 !important;
 }
 #gameModal:fullscreen{ background:#000; }
 #gameModal:fullscreen #gameFrame{ width:100vw; height:100vh; max-width:none; max-height:none; border:none; border-radius:0; }
@@ -961,7 +966,7 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
   <div class="rail-group" id="toolsGroup">
     <button type="button" class="rail-btn" id="railAiBtn" onclick="openApp('Axiom AI', 'https://cdn.jsdelivr.net/gh/Onex558/mercury-movies-@main/myaithe%20bestai.html')">Axiom AI</button>
     <button type="button" class="rail-btn" id="appsBtn">Apps</button>
-    <button type="button" class="rail-btn" data-view="chat" id="railChat" onclick="window.showView&&window.showView('chat (BETA) ')">Chat</button>
+    <button type="button" class="rail-btn" data-view="chat" id="railChat" onclick="window.showView&&window.showView('chat')">Chat</button>
   </div>
 
   <button type="button" class="rail-btn rail-group-btn" data-group="accountGroup" aria-expanded="false">Account<span class="chevron">&#10095;</span></button>
@@ -1121,10 +1126,10 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
    </div>
   </div>
  </div>
- <iframe id="gameFrame" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals allow-popups allow-popups-to-escape-sandbox"></iframe>
+ <iframe id="gameFrame" allowfullscreen="true" allow="fullscreen *; autoplay *; gamepad *; pointer-lock *; clipboard-read *; clipboard-write *; accelerometer *; gyroscope *; magnetometer *; camera *; microphone *; payment *; midi *; encrypted-media *; picture-in-picture *; display-capture *" referrerpolicy="no-referrer" loading="eager" style="background:#000;"></iframe>
  <div id="proxyLoadScreen" aria-hidden="true">
   <div class="pls-mark">A</div>
-  <div class="pls-title">Axiom Proxy</div>
+  <div class="pls-title">Axiom</div>
   <div class="pls-status" id="plsStatus">Starting...</div>
   <div class="pls-bar"><i></i></div>
   <div class="pls-steps" id="plsSteps">
@@ -2213,17 +2218,21 @@ async function fetchTruffledSource() {
 }
 
 async function loadAllSources() {
-  if (!statusLine) return;
-  statusLine.textContent = 'Loading games...';
+  if (statusLine) statusLine.textContent = 'Loading games...';
 
-  const axiomGames = Array.isArray(customGames) ? customGames.map(g => ({
-    ...g,
-    source: 'axiom',
-    special: Array.isArray(g.special) ? g.special : []
-  })) : [];
+  const axiomGames = (Array.isArray(customGames) ? customGames : [])
+    .filter(g => g && g.name && g.resolvedUrl)
+    .map(g => ({
+      ...g,
+      source: g.source || 'axiom',
+      special: Array.isArray(g.special) ? g.special : [],
+      resolvedUrl: String(g.resolvedUrl || '').trim(),
+      resolvedCover: String(g.resolvedCover || '').trim()
+    }))
+    .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
 
-  // Show Axiom's built-in games immediately. External lists should never
-  // prevent the main library from rendering.
+  // Show Axiom's built-in games immediately so the library is never empty
+  // while external sources are still fetching.
   allGames = axiomGames.slice();
   try {
     localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
@@ -2231,6 +2240,7 @@ async function loadAllSources() {
   setGamesReadyStatus();
   buildFilterBar();
   handleSearch();
+  console.log('[Axiom] Built-in games ready:', axiomGames.length);
 
   const safe = async (label, fn) => {
     try {
@@ -2745,10 +2755,10 @@ function showProxyLoadScreen(gameName) {
   screen.classList.add('show');
   screen.setAttribute('aria-hidden', 'false');
   const labels = [
-    'Connecting transport...',
-    'Booting proxy engine...',
-    'Routing request...',
-    'Loading game assets' + (gameName ? ' for ' + gameName : '') + '...'
+    'Starting...',
+    'Loading engine...',
+    'Preparing game...',
+    'Loading' + (gameName ? ' ' + gameName : ' game') + '...'
   ];
   if (status) status.textContent = labels[0];
   setProxyLoadStep(0);
@@ -2790,86 +2800,124 @@ if (!window.__axiomProxyLoadHooked) {
   });
 }
 
-/** Open a game URL through the Scramjet proxy embed â no browser chrome */
-function openProxiedInModal(name, url) {
-  if (!url) return;
+/**
+ * jsDelivr serves many game HTML files as text/plain + nosniff, so a normal
+ * iframe shows SOURCE CODE instead of the game. Fix: fetch the HTML and load
+ * it as a Blob with type text/html. Games already include <base href> (or we
+ * inject one) so relative assets still resolve on the CDN.
+ */
+function gameDirBase(url) {
+  try {
+    const u = new URL(url);
+    const path = u.pathname.endsWith('/') ? u.pathname : u.pathname.replace(/[^/]+$/, '');
+    return u.origin + path;
+  } catch (_) {
+    return '';
+  }
+}
 
-  const originalUrl = String(url).trim();
-  const proxied = (typeof PROXY_EMBED !== 'undefined' &&
-                   originalUrl.indexOf(PROXY_EMBED) === 0)
-    ? originalUrl
-    : buildProxySrc(originalUrl);
+function injectBaseHref(html, pageUrl) {
+  if (!html || /<base\s/i.test(html)) return html;
+  const base = gameDirBase(pageUrl);
+  if (!base) return html;
+  const tag = '<base href="' + base.replace(/"/g, '&quot;') + '">';
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (m) => m + tag);
+  }
+  return tag + html;
+}
 
-  proxyMode = false;
-  showProxyBar(false);
-  activeSessionName = name || 'Game';
-  activeSessionUrl = originalUrl;
+async function fetchGameHtml(url) {
+  const bust = url + (url.includes('?') ? '&' : '?') + 'ax=' + Date.now();
+  const res = await fetch(bust, { mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  let html = await res.text();
+  if (!html || html.length < 40) throw new Error('empty');
+  html = injectBaseHref(html, url);
+  return html;
+}
 
-  const oldMoviesBtn = document.getElementById('oldMoviesBtn');
-  if (oldMoviesBtn) oldMoviesBtn.style.display = 'none';
-
-  hideModalError();
+function loadHtmlIntoFrame(html) {
   if (currentBlobUrl) {
     try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
     currentBlobUrl = null;
   }
+  gameFrame.removeAttribute('srcdoc');
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  currentBlobUrl = URL.createObjectURL(blob);
+  gameFrame.style.display = 'block';
+  gameFrame.style.visibility = 'visible';
+  gameFrame.src = currentBlobUrl;
+}
 
-  gameFrame.src = 'about:blank';
+function prepareGameModal(name) {
+  proxyMode = false;
+  showProxyBar(false);
+  gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized', 'proxy-home-active');
+  if (typeof showMusicPill === 'function') showMusicPill(false);
+  if (typeof showProxyHome === 'function') showProxyHome(false);
+
+  const oldMoviesBtn = document.getElementById('oldMoviesBtn');
+  if (oldMoviesBtn) {
+    oldMoviesBtn.style.display =
+      name && String(name).toLowerCase().includes('movie') ? 'inline-block' : 'none';
+  }
+
+  hideModalError();
+  gameFrame.style.display = 'block';
+  gameFrame.style.visibility = 'visible';
+  gameFrame.style.opacity = '1';
+
   gameModal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
   gameModal.classList.add('open');
-  gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized');
-  if (typeof showMusicPill === 'function') showMusicPill(false);
   resetModalChrome();
   showModalChrome();
   clearTimeout(modalChromeHideTimer);
   modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
+}
 
+/** Proxy path for hosts that block iframes */
+function openProxiedInModal(name, url) {
+  if (!url) return;
+  const clean = String(url).trim();
+  const real = clean.indexOf(PROXY_EMBED) === 0 ? clean.slice(PROXY_EMBED.length) : clean;
+
+  activeSessionName = name || 'Game';
+  activeSessionUrl = real;
+  prepareGameModal(name);
   showProxyLoadScreen(name);
 
-  let proxyLoaded = false;
-  const onLoad = () => {
-    proxyLoaded = true;
-    gameFrame.removeEventListener('load', onLoad);
-    setTimeout(hideProxyLoadScreen, 350);
-  };
-  gameFrame.addEventListener('load', onLoad);
-
-  gameFrame.src = proxied;
-
-  /*
-   * Some proxy mirrors are unavailable/blocked. After a timeout, try the
-   * original game URL directly. This allows games that support iframes
-   * natively to work even when the proxy is down.
-   */
-  setTimeout(() => {
-    if (!gameModal.classList.contains('open') || proxyLoaded) return;
-    console.warn('[Axiom] Proxy did not finish; trying direct game URL:', originalUrl);
-    hideProxyLoadScreen();
-    gameFrame.src = originalUrl;
-  }, 8000);
-
-  setTimeout(() => {
-    if (!gameModal.classList.contains('open')) return;
-    hideProxyLoadScreen();
-    hideModalError();
-  }, 12000);
+  // Prefer fetch→HTML blob (plays for real). Proxy is only a fallback.
+  fetchGameHtml(real)
+    .then((html) => {
+      hideProxyLoadScreen();
+      loadHtmlIntoFrame(html);
+    })
+    .catch((err) => {
+      console.warn('[Axiom] fetch failed, trying proxy', err);
+      gameFrame.src = buildProxySrc(real);
+      setTimeout(() => {
+        hideProxyLoadScreen();
+        // If still useless, last try: open in a new tab
+        setTimeout(() => {
+          if (!gameModal.classList.contains('open')) return;
+        }, 2000);
+      }, 4000);
+    });
 }
 
 function gameNeedsProxy(game) {
   if (!game) return false;
   const src = (game.source || 'axiom').toLowerCase();
+  // Axiom, GN Math, Noah's Hub — NEVER use the proxy
+  if (src === 'axiom' || src === 'gnmath' || src === 'noah') return false;
   if (game.frameType === 'proxy' || game.frameType === 'unity' || game.frameType === 'unityframe') return true;
   if (src === 'truffled') return true;
   if (Array.isArray(game.special) && game.special.some(s => /proxy|unity|tab/i.test(String(s)))) return true;
   try {
-    const u = String(game.resolvedUrl || '');
-    const host = new URL(u).hostname.toLowerCase();
-    // Axiom's own static game files can load directly. Other external hosts
-    // are sent through the same game proxy path so X-Frame-Options/CSP is
-    // much less likely to make a random game appear blank.
-    if (!/(^|\.)cdn\.jsdelivr\.net$/.test(host) &&
-        !/(^|\.)raw\.githubusercontent\.com$/.test(host)) return true;
+    const host = new URL(String(game.resolvedUrl || '')).hostname.toLowerCase();
+    if (/truffled\.lol|shellshock\.io|krunker\.io|bloxd\.io|voxiom\.io|hfmanor\.com/i.test(host)) return true;
   } catch (_) {}
   return false;
 }
@@ -2883,57 +2931,44 @@ function openGame(game) {
     return;
   }
 
-  proxyMode = false;
-  showProxyBar(false);
-  addToRecent(game);
+  try { addToRecent(game); } catch (_) {}
+  try { trackGameOpen(game); } catch (_) {}
 
-  // External games use the same proxy path so games blocked by iframe
-  // restrictions have a much better chance of loading.
-  if (gameNeedsProxy(game)) {
-    const proxied = buildProxySrc(url);
-    if (settings.openAboutBlank) {
-      openGameInAboutBlank(game.name, proxied);
-    } else {
-      openProxiedInModal(game.name, proxied);
-    }
+  // about:blank stealth: still use HTML blob so it RENDERS, not source code
+  if (settings.openAboutBlank) {
+    fetchGameHtml(url)
+      .then((html) => {
+        openInAboutBlankWindow(game.name, html, true);
+      })
+      .catch(() => {
+        openInAboutBlankWindow(game.name, url, false);
+      });
     return;
   }
 
-  if (settings.openAboutBlank) {
-    openGameInAboutBlank(game.name, url);
-  } else {
-    openInModal(game.name, url, game);
+  if (gameNeedsProxy(game)) {
+    openProxiedInModal(game.name, url);
+    return;
   }
+
+  openInModal(game.name, url, game);
 }
 
 function openApp(name, url) {
- proxyMode = false;
- showProxyBar(false);
- if (settings.openAboutBlank) {
- openGameInAboutBlank(name, url);
- } else {
- openInModal(name, url);
- }
+  if (settings.openAboutBlank) {
+    openInAboutBlankWindow(name, url, false);
+  } else {
+    openInModal(name, url);
+  }
 }
 
 function openGameInAboutBlank(name, url) {
- if (!url) return;
- activeSessionName = name || 'this session';
- activeSessionUrl = url;
- // Proxy embed pages aren't fetchable HTML Ã¢ÂÂ load as iframe src instead
- const isProxied = typeof PROXY_EMBED !== 'undefined' && String(url).indexOf(PROXY_EMBED) === 0;
- if (isProxied) {
-   openInAboutBlankWindow(name, url, false);
-   return;
- }
- fetchHtmlForAboutBlank(url)
- .then(html => {
- openInAboutBlankWindow(name, html, true);
- })
- .catch(err => {
- console.warn('Fetch failed, opening URL in about:blank iframe:', err.message);
- openInAboutBlankWindow(name, url, false);
- });
+  if (!url) return;
+  activeSessionName = name || 'this session';
+  activeSessionUrl = url;
+  fetchGameHtml(url)
+    .then((html) => openInAboutBlankWindow(name, html, true))
+    .catch(() => openInAboutBlankWindow(name, url, false));
 }
 
 function trackGameOpen(game) {
@@ -2949,75 +2984,36 @@ function trackGameOpen(game) {
 
 function openInModal(name, url, game) {
   if (!url) return;
-  trackGameOpen(game);
-
-  proxyMode = false;
-  showProxyBar(false);
-  gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized');
-  if (typeof showMusicPill === 'function') showMusicPill(false);
+  try { trackGameOpen(game); } catch (_) {}
 
   activeSessionName = name || 'this session';
   activeSessionUrl = url;
+  prepareGameModal(name);
 
-  const oldMoviesBtn = document.getElementById('oldMoviesBtn');
-  if (oldMoviesBtn) oldMoviesBtn.style.display =
-    name && name.toLowerCase().includes('movie') ? 'inline-block' : 'none';
-
-  hideModalError();
-  if (currentBlobUrl) {
-    try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
-    currentBlobUrl = null;
-  }
-
-  gameFrame.src = 'about:blank';
-  gameModal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  gameModal.classList.add('open');
-  resetModalChrome();
-  showModalChrome();
-  clearTimeout(modalChromeHideTimer);
-  modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
-
-  /*
-   * IMPORTANT:
-   * Do NOT fetch the game HTML and put it into a Blob.
-   * Blob URLs change the document origin, which breaks games that use
-   * relative JS/CSS/image/asset paths.
-   *
-   * Loading the original URL directly keeps the game's real origin,
-   * so relative assets continue to resolve correctly.
-   */
   const target = String(url).trim();
-  let loaded = false;
+  const src = ((game && game.source) || 'axiom').toLowerCase();
+  const noProxy = (src === 'axiom' || src === 'gnmath' || src === 'noah');
 
-  const onLoad = () => {
-    loaded = true;
-    hideModalError();
-    gameFrame.removeEventListener('load', onLoad);
-  };
+  // Direct play only for Axiom / GN Math / Noah — never route through proxy
+  showProxyLoadScreen(name);
 
-  gameFrame.addEventListener('load', onLoad);
-
-  // Give the browser a clean iframe first.
-  setTimeout(() => {
-    if (!gameModal.classList.contains('open')) return;
-    gameFrame.src = target;
-  }, 30);
-
-  // If the first navigation fails silently, reload the direct URL once.
-  setTimeout(() => {
-    if (!gameModal.classList.contains('open') || loaded) return;
-    try {
-      gameFrame.src = target + (target.includes('?') ? '&' : '?') + 'axiom_retry=' + Date.now();
-    } catch (_) {}
-  }, 5000);
-
-  // Never replace a working game with the error screen just because an
-  // iframe load event is unavailable for a cross-origin document.
-  setTimeout(() => {
-    if (!gameModal.classList.contains('open')) return;
-    if (!loaded) hideModalError();
-  }, 9000);
+  fetchGameHtml(target)
+    .then((html) => {
+      hideProxyLoadScreen();
+      loadHtmlIntoFrame(html);
+    })
+    .catch((err) => {
+      console.warn('[Axiom] HTML fetch failed', err);
+      hideProxyLoadScreen();
+      // Direct iframe only — no proxy for Axiom / GN / Noah
+      gameFrame.src = target;
+      if (!noProxy) {
+        setTimeout(() => {
+          if (!gameModal.classList.contains('open')) return;
+          try { gameFrame.src = buildProxySrc(target); } catch (_) {}
+        }, 5000);
+      }
+    });
 }
 
 function closeModal() {
@@ -3347,15 +3343,21 @@ document.getElementById('openSettings').onclick = openSettings;
 document.getElementById('closeSettings').onclick = closeSettings;
 overlay.onclick = closeSettings;
 
-const randomGameBtn = document.getElementById('randomGameBtn');
-if (randomGameBtn) randomGameBtn.onclick = () => {
-  // Pick from the same list the library is currently displaying, so Random
-  // Game behaves exactly like clicking one of the visible game cards.
+function pickRandomGame() {
+  // Prefer currently filtered/search results so Random matches visible cards.
   const pool = (displayedGamesList && displayedGamesList.length ? displayedGamesList : allGames)
     .filter(g => g && /^https?:\/\//i.test(String(g.resolvedUrl || '').trim()));
-  if (!pool.length) { showToast('Games are still loading'); return; }
-  const g = pool[Math.floor(Math.random() * pool.length)];
-  openGame(g);
+  if (!pool.length) {
+    showToast('Games are still loading');
+    return null;
+  }
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+const randomGameBtn = document.getElementById('randomGameBtn');
+if (randomGameBtn) randomGameBtn.onclick = () => {
+  const g = pickRandomGame();
+  if (g) openGame(g);
 };
 
 const levelBtn = document.getElementById('levelBtn');
@@ -3621,10 +3623,8 @@ document.addEventListener('keydown', e => {
  buildFilterBar();
  handleSearch();
  } else if (e.key === 'r' || e.key === 'R') {
- if (allGames.length) {
- const g = allGames[Math.floor(Math.random() * allGames.length)];
- openGame(g);
- }
+ const g = pickRandomGame();
+ if (g) openGame(g);
  }
 });
 
@@ -3793,11 +3793,18 @@ updateClock();
 setInterval(updateClock, 1000);
 
 
+function axiomBootGames() {
+  try { updateStatsUI(); } catch (_) {}
+  try { loadAllSources(); } catch (e) { console.error('[Axiom] loadAllSources failed', e); }
+}
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  setTimeout(axiomBootGames, 0);
+} else {
+  window.addEventListener('DOMContentLoaded', axiomBootGames, { once: true });
+}
 window.addEventListener('load', () => {
- updateStatsUI();
- loadAllSources();
- /* weather removed */
-
+  // Re-run only if nothing rendered yet
+  if (!(allGames && allGames.length)) axiomBootGames();
 });
 </script>
 
