@@ -2,6 +2,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-SWJ0G7WQW4"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-SWJ0G7WQW4');
+  </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Axiom</title>
@@ -2960,7 +2968,7 @@ function openGame(game) {
  if (settings.openAboutBlank) {
  openGameInAboutBlank(game.name, game.resolvedUrl);
  } else {
- openInModal(game.name, game.resolvedUrl);
+ openInModal(game.name, game.resolvedUrl, game);
  }
 }
 
@@ -2994,8 +3002,20 @@ function openGameInAboutBlank(name, url) {
  });
 }
 
-function openInModal(name, url) {
+function trackGameOpen(game) {
+  try {
+    if (typeof gtag !== 'function' || !game) return;
+    gtag('event', 'game_open', {
+      game_name: String(game.name || 'Unknown Game'),
+      game_source: String(game.source || 'unknown'),
+      game_url: String(game.resolvedUrl || '')
+    });
+  } catch (_) {}
+}
+
+function openInModal(name, url, game) {
   if (!url) return;
+  trackGameOpen(game);
 
   proxyMode = false;
   showProxyBar(false);
