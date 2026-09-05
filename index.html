@@ -3816,7 +3816,10 @@ window.addEventListener('load', () => {
 /**
  * Axiom Account + Chat
  * One Supabase client, one account system, one chat system.
- * Auth uses Supabase Auth. Chat uses Realtime Broadcast (no chat table required).
+ * Auth uses Supabase Auth with username + password only.
+ * Sessions persist in localStorage, so a signed-in user stays signed in
+ * across reloads/tabs until they explicitly sign out.
+ * Chat uses Realtime Broadcast (no chat table required).
  * Player progress is stored locally per Supabase user ID.
  */
 (function () {
@@ -3833,8 +3836,15 @@ window.addEventListener('load', () => {
     return;
   }
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+      persistSession: true,      // keep the session saved so accounts are remembered
+      autoRefreshToken: true,    // silently refresh so the session doesn't expire while open
+      storage: window.localStorage,
+      storageKey: 'axiom-auth'
+    }
+  });
+
   window.axiomSb = sb;
 
   /* ===== LIVE ONLINE USER COUNTER (Supabase Presence) ===== */
@@ -4007,6 +4017,40 @@ window.addEventListener('load', () => {
     return 'player';
   }
 
+  function avatarMarkup(u, name) {
+    const url = u && u.user_metadata && u.user_metadata.avatar_url;
+    if (url) return `<img src="${url}" alt="Profile picture">`;
+    return (name && name[0] ? name[0] : 'A').toUpperCase();
+  }
+
+  // Reads an image file, downsizes it, and returns a small base64 JPEG data URL
+  // suitable for storing directly on the account (no separate file storage needed).
+  function resizeImageToDataUrl(file, maxSize) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read that file.'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('That file is not a valid image.'));
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height) {
+            if (width > maxSize) { height = Math.round(height * (maxSize / width)); width = maxSize; }
+          } else {
+            if (height > maxSize) { width = Math.round(width * (maxSize / height)); height = maxSize; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function injectAuthStyles(){
     if ($('axiom-account-styles')) return;
     const s = document.createElement('style');
@@ -4018,27 +4062,24 @@ window.addEventListener('load', () => {
       .auth-tabs{display:flex;gap:6px;background:rgba(255,255,255,.04);padding:4px;border-radius:12px;margin:0 0 18px}
       .auth-tab{flex:1;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:var(--muted,#7a7a92);font-family:inherit;font-weight:700;font-size:.85em;cursor:pointer;transition:.18s}
       .auth-tab.active{background:rgba(139,108,255,.18);color:var(--text,#fff);box-shadow:inset 0 0 0 1px rgba(139,108,255,.35)}
-      .auth-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:#fff;color:#1f1f27;font-family:inherit;font-weight:700;font-size:.92em;cursor:pointer;transition:.18s}
-      .auth-google:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(0,0,0,.35)}
-      .auth-google svg{width:18px;height:18px}
-      .auth-or{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted,#7a7a92);font-size:.72em;letter-spacing:.12em;text-transform:uppercase}
-      .auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--border,rgba(255,255,255,.1))}
       .auth-hint{font-size:.72em;color:var(--muted,#7a7a92);margin-top:5px}
       .auth-note{color:#8ee6a8;font-size:.82em;margin:0 0 10px}
       .auth-submit[disabled]{opacity:.6;cursor:default}
       .auth-strength{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:7px}
       .auth-strength i{display:block;height:100%;width:0;background:#ff6b6b;transition:.25s}
       .auth-strength.ok i{background:#ffc457}.auth-strength.good i{background:#8ee6a8}
-      .auth-me{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-      .auth-avatar{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--primary,#8b6cff),#5b3fd6)}
+      .auth-me{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+      .auth-avatar-wrap{position:relative;flex-shrink:0}
+      .auth-avatar{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--primary,#8b6cff),#5b3fd6);overflow:hidden}
+      .auth-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+      .auth-avatar-edit{position:absolute;bottom:-4px;right:-4px;width:22px;height:22px;border-radius:50%;border:2px solid var(--surface,#0c0c14);background:var(--primary,#8b6cff);color:#fff;font-size:.7em;display:grid;place-items:center;cursor:pointer;padding:0;line-height:1}
+      .auth-avatar-edit:hover{filter:brightness(1.15)}
       .auth-me b{display:block;font-size:1.05em}.auth-me span{font-size:.78em;color:var(--muted,#7a7a92)}
       .auth-ghost{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.12));background:transparent;color:var(--text,#fff);font-family:inherit;font-weight:700;cursor:pointer;margin-top:8px}
       .auth-ghost:hover{background:rgba(255,255,255,.05)}
     `;
     document.head.appendChild(s);
   }
-
-  const GOOGLE_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.9 2.6 13.7l7.8 6.1C12.3 13.6 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-2.8-.4-4.1H24v8.4h12.5c-.3 2.1-1.6 5.2-4.7 7.3l7.6 5.9c4.5-4.2 6.7-10.3 6.7-17.5z"/><path fill="#FBBC05" d="M10.4 28.2c-.5-1.4-.8-2.9-.8-4.2s.3-2.9.8-4.2l-7.8-6.1C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.3l7.8-6.1z"/><path fill="#34A853" d="M24 47.5c6.2 0 11.5-2 15.4-5.6l-7.6-5.9c-2 1.4-4.7 2.4-7.8 2.4-6.4 0-11.7-4.1-13.6-9.8l-7.8 6.1C6.5 42.1 14.6 47.5 24 47.5z"/></svg>';
 
   function ensureUsernameUI() {
     injectAuthStyles();
@@ -4050,8 +4091,6 @@ window.addEventListener('load', () => {
         <div class="auth-brand"><span class="auth-logo">A</span><div><h2 id="authTitle" style="margin:0">Welcome to Axiom</h2><p class="auth-sub" id="authSubtitle" style="margin:2px 0 0">Log in or create a free account.</p></div></div>
 
         <div id="authGuest">
-          <button type="button" class="auth-google" id="googleBtn">${GOOGLE_SVG}<span>Continue with Google</span></button>
-          <div class="auth-or">or</div>
           <div class="auth-tabs">
             <button type="button" class="auth-tab active" id="tabLogin">Log in</button>
             <button type="button" class="auth-tab" id="tabSignup">Create account</button>
@@ -4078,11 +4117,44 @@ window.addEventListener('load', () => {
         </div>
 
         <div id="authAccount" hidden>
-          <div class="auth-me"><span class="auth-avatar" id="meAvatar">A</span><div><b id="meName">@player</b><span id="meProvider">Username account</span></div></div>
+          <div class="auth-me">
+            <div class="auth-avatar-wrap">
+              <span class="auth-avatar" id="meAvatar">A</span>
+              <button type="button" class="auth-avatar-edit" id="avatarEditBtn" title="Change profile picture">&#9998;</button>
+              <input type="file" id="avatarInput" accept="image/*" hidden>
+            </div>
+            <div><b id="meName">@player</b><span id="meProvider">Username account</span></div>
+          </div>
+          <p class="auth-hint" id="avatarHint" style="margin-bottom:14px">Click the pencil to upload a profile picture.</p>
           <button type="button" class="auth-ghost" id="signOutBtn">Sign out</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
+
+    $('avatarEditBtn').onclick = () => $('avatarInput').click();
+    $('avatarInput').onchange = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      if (!currentUser) { toast('Log in first to set a profile picture.'); return; }
+      if (!file.type.startsWith('image/')) { toast('Please choose an image file.'); return; }
+      if (file.size > 8 * 1024 * 1024) { toast('That image is too large (max 8MB).'); return; }
+      const hint = $('avatarHint');
+      const prevHint = hint.textContent;
+      hint.textContent = 'Uploading...';
+      try {
+        const dataUrl = await resizeImageToDataUrl(file, 256);
+        const { data, error } = await sb.auth.updateUser({ data: { avatar_url: dataUrl } });
+        if (error) throw error;
+        currentUser = data.user;
+        renderAccountModal();
+        toast('Profile picture updated');
+      } catch (err) {
+        toast(err?.message || 'Could not update your photo.');
+      } finally {
+        hint.textContent = prevHint;
+      }
+    };
 
     let mode = 'login';
     const err = $('authError'), note = $('authNote');
@@ -4119,19 +4191,6 @@ window.addEventListener('load', () => {
       bar.classList.toggle('good', score >= 4);
       bar.firstElementChild.style.width = Math.min(100, score * 22) + '%';
     });
-
-    $('googleBtn').onclick = async () => {
-      showNote('Opening Google...');
-      try {
-        const { error } = await sb.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo: window.location.origin + window.location.pathname }
-        });
-        if (error) throw error;
-      } catch (e2) {
-        showErr(/provider/i.test(e2?.message || '') ? 'Google sign-in is not enabled for this site yet.' : (e2?.message || 'Google sign-in failed.'));
-      }
-    };
 
     $('usernameForm').onsubmit = async e => {
       e.preventDefault();
@@ -4206,9 +4265,8 @@ window.addEventListener('load', () => {
     if (signedIn) {
       const name = nameFromUser(currentUser);
       $('meName').textContent = '@' + name;
-      $('meAvatar').textContent = (name[0] || 'A').toUpperCase();
-      const provider = (currentUser.app_metadata && currentUser.app_metadata.provider) || 'username';
-      $('meProvider').textContent = provider === 'google' ? 'Signed in with Google' : 'Username account';
+      $('meAvatar').innerHTML = avatarMarkup(currentUser, name);
+      $('meProvider').textContent = 'Username account';
       $('authSubtitle').textContent = 'You stay logged in on this device.';
     }
   }
