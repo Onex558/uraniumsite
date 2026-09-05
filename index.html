@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -524,6 +525,66 @@ body::after{
   padding:9px 15px; border:none; border-radius:10px; cursor:pointer; font-family:inherit;
 }
 #modalError{ display:none; flex-direction:column; align-items:center; gap:10px; color:#ff6b6b; text-align:center; }
+
+/* Custom proxy loading screen */
+#proxyLoadScreen{
+  display:none;
+  position:absolute;
+  inset:0;
+  z-index:12;
+  background:radial-gradient(ellipse at 50% 30%, rgba(var(--primary-rgb),0.18) 0%, #05050a 55%, #000 100%);
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  pointer-events:none;
+}
+#proxyLoadScreen.show{ display:flex; }
+#proxyLoadScreen .pls-mark{
+  width:56px; height:56px; border-radius:16px;
+  background:rgba(var(--primary-rgb),0.15);
+  border:1px solid rgba(var(--primary-rgb),0.35);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:1.25em; color:var(--primary);
+  box-shadow:0 0 32px rgba(var(--primary-rgb),0.25);
+}
+#proxyLoadScreen .pls-title{
+  font-size:1.05em; font-weight:800; letter-spacing:0.12em;
+  color:rgba(255,255,255,0.92); text-transform:uppercase;
+}
+#proxyLoadScreen .pls-status{
+  font-size:0.82em; font-weight:600;
+  color:rgba(255,255,255,0.5); min-height:1.2em;
+}
+#proxyLoadScreen .pls-bar{
+  width:min(260px, 70vw); height:4px; border-radius:99px;
+  background:rgba(255,255,255,0.08); overflow:hidden;
+}
+#proxyLoadScreen .pls-bar > i{
+  display:block; height:100%; width:30%;
+  background:linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation:plsSlide 1.1s ease-in-out infinite;
+}
+@keyframes plsSlide{
+  0%{ transform:translateX(-120%); }
+  100%{ transform:translateX(400%); }
+}
+#proxyLoadScreen .pls-steps{
+  display:flex; flex-direction:column; gap:6px;
+  margin-top:6px; min-width:200px;
+}
+#proxyLoadScreen .pls-step{
+  font-size:0.72em; color:rgba(255,255,255,0.28);
+  display:flex; align-items:center; gap:8px;
+}
+#proxyLoadScreen .pls-step.on{ color:rgba(255,255,255,0.75); }
+#proxyLoadScreen .pls-step.done{ color:rgba(var(--primary-rgb),0.9); }
+#proxyLoadScreen .pls-step .dot{
+  width:6px; height:6px; border-radius:50%;
+  background:currentColor; flex-shrink:0;
+}
+#gameModal.proxy-mode #proxyLoadScreen,
+#gameModal.music-mode #proxyLoadScreen{ display:none !important; }
 
 /* Browser tab strip */
 .proxy-tabs{
@@ -1055,6 +1116,18 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
   </div>
  </div>
  <iframe id="gameFrame" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals allow-popups allow-popups-to-escape-sandbox"></iframe>
+ <div id="proxyLoadScreen" aria-hidden="true">
+  <div class="pls-mark">A</div>
+  <div class="pls-title">Axiom Proxy</div>
+  <div class="pls-status" id="plsStatus">Starting...</div>
+  <div class="pls-bar"><i></i></div>
+  <div class="pls-steps" id="plsSteps">
+    <div class="pls-step" data-step="0"><span class="dot"></span>Connect transport</div>
+    <div class="pls-step" data-step="1"><span class="dot"></span>Boot proxy engine</div>
+    <div class="pls-step" data-step="2"><span class="dot"></span>Route request</div>
+    <div class="pls-step" data-step="3"><span class="dot"></span>Load game assets</div>
+  </div>
+ </div>
  <div id="modalError">
  <div id="modalErrorTitle" style="font-size:1.25em;font-weight:700;color:#fff;"></div>
  <div id="modalErrorReason" style="font-size:0.9em;color:rgba(255,255,255,0.6);"></div>
@@ -1603,20 +1676,7 @@ async function openLuminGame(game) {
     if (settings.openAboutBlank) {
       openGameInAboutBlank(game.name || 'Game', proxied);
     } else {
-      // Same modal as other games â no proxy browser chrome, just the game iframe
-      proxyMode = false;
-      showProxyBar(false);
-      activeSessionName = game.name || 'Game';
-      activeSessionUrl = proxied;
-      hideModalError();
-      gameFrame.src = 'about:blank';
-      gameModal.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      gameModal.classList.add('open');
-      gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized');
-      resetModalChrome();
-      showModalChrome();
-      gameFrame.src = proxied;
+      openProxiedInModal(game.name || 'Game', proxied);
     }
 
     setGamesReadyStatus();
@@ -2125,6 +2185,7 @@ function handleSearch() {
  if (clearSearchBtn) clearSearchBtn.style.display = query ? 'block' : 'none';
 
  // All sources, including Lumin / Truffled, use the same Axiom game grid.
+ // Truffled games always appear in the list (only exact URL clones were stripped on load).
  let results = allGames;
 
  if (currentFilter === 'favorites') {
@@ -2132,11 +2193,7 @@ function handleSearch() {
  }
 
  if (currentSource !== 'all') {
-  // Source filter: show EVERY game from that source (full Truffled list, etc.)
   results = results.filter(g => (g.source || 'axiom') === currentSource);
- } else {
-  // "All" view: hide name-duplicates across sources so the grid stays clean
-  results = dedupeGamesByName(results);
  }
 
  if (query) {
@@ -2145,8 +2202,6 @@ function handleSearch() {
  const target = `${g.name} ${g.author || ''}`.toLowerCase();
  return tokens.every(t => target.includes(t));
  });
-  // After search on All, still collapse same-title rows
-  if (currentSource === 'all') results = dedupeGamesByName(results);
  }
  renderGames(results);
 }
@@ -2789,6 +2844,82 @@ function renderBookmarks() {
 }
 loadBookmarks();
 
+/* ========== CUSTOM PROXY LOADING SCREEN ========== */
+let _plsTimers = [];
+let _plsHideTimer = null;
+
+function clearProxyLoadTimers() {
+  _plsTimers.forEach(t => clearTimeout(t));
+  _plsTimers = [];
+  if (_plsHideTimer) { clearTimeout(_plsHideTimer); _plsHideTimer = null; }
+}
+
+function setProxyLoadStep(activeIdx) {
+  const steps = document.querySelectorAll('#plsSteps .pls-step');
+  steps.forEach((el, i) => {
+    el.classList.remove('on', 'done');
+    if (i < activeIdx) el.classList.add('done');
+    else if (i === activeIdx) el.classList.add('on');
+  });
+}
+
+function showProxyLoadScreen(gameName) {
+  const screen = document.getElementById('proxyLoadScreen');
+  const status = document.getElementById('plsStatus');
+  if (!screen) return;
+  if (gameModal.classList.contains('proxy-mode') || gameModal.classList.contains('music-mode')) {
+    screen.classList.remove('show');
+    return;
+  }
+  clearProxyLoadTimers();
+  screen.classList.add('show');
+  screen.setAttribute('aria-hidden', 'false');
+  const labels = [
+    'Connecting transport...',
+    'Booting proxy engine...',
+    'Routing request...',
+    'Loading game assets' + (gameName ? ' for ' + gameName : '') + '...'
+  ];
+  if (status) status.textContent = labels[0];
+  setProxyLoadStep(0);
+
+  const delays = [600, 1400, 2400, 3600];
+  delays.forEach((ms, i) => {
+    _plsTimers.push(setTimeout(() => {
+      setProxyLoadStep(i);
+      if (status) status.textContent = labels[i];
+    }, ms));
+  });
+
+  // Safety: never leave the screen up forever
+  _plsHideTimer = setTimeout(hideProxyLoadScreen, 14000);
+}
+
+function hideProxyLoadScreen() {
+  const screen = document.getElementById('proxyLoadScreen');
+  if (screen) {
+    screen.classList.remove('show');
+    screen.setAttribute('aria-hidden', 'true');
+  }
+  clearProxyLoadTimers();
+}
+
+// Hide when Scramjet reports the page started loading
+if (!window.__axiomProxyLoadHooked) {
+  window.__axiomProxyLoadHooked = true;
+  window.addEventListener('message', function (e) {
+    try {
+      const data = e && e.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'frameload' || data.type === 'urlchange') {
+        if (gameModal && gameModal.style.display === 'flex' && !gameModal.classList.contains('proxy-mode')) {
+          hideProxyLoadScreen();
+        }
+      }
+    } catch (_) {}
+  });
+}
+
 /** Open a game URL through the Scramjet proxy embed (same path Lumin uses) â no browser chrome */
 function openProxiedInModal(name, url) {
   if (!url) return;
@@ -2816,7 +2947,15 @@ function openProxiedInModal(name, url) {
   clearTimeout(modalChromeHideTimer);
   modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
 
+  showProxyLoadScreen(name);
   gameFrame.src = proxied;
+  // Also hide when the iframe itself finishes its first load
+  const onLoad = () => {
+    gameFrame.removeEventListener('load', onLoad);
+    // small delay so the proxy UI can settle under the cover
+    setTimeout(hideProxyLoadScreen, 400);
+  };
+  gameFrame.addEventListener('load', onLoad);
 }
 
 function gameNeedsProxy(game) {
@@ -2953,6 +3092,7 @@ function closeModal() {
  document.body.style.overflow = '';
  gameFrame.src = 'about:blank';
  hideModalError();
+ if (typeof hideProxyLoadScreen === 'function') hideProxyLoadScreen();
  activeSessionName = null;
  activeSessionUrl = null;
  resetModalChrome();
@@ -3944,4 +4084,4 @@ window.addEventListener('load', () => {
 </script>
 
 </body>
-</html>pop
+</html>
