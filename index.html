@@ -384,8 +384,9 @@ body::after{
 }
 .src-badge.src-noah{ color:#a78bfa; }
 .src-badge.src-gnmath{ color:#7dd3fc; }
-.src-badge.src-lumin{ color:#34d399; }
 .src-badge.src-truffled{ color:#fbbf24; }
+.src-badge.src-maths{ color:#fb7185; }
+.src-badge.src-visn{ color:#a3e635; }
 .play-overlay{
   position:absolute; inset:0; z-index:3;
   display:flex; align-items:center; justify-content:center;
@@ -1011,8 +1012,9 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
           <button type="button" data-source="axiom">Axiom</button>
           <button type="button" data-source="gnmath">GN Math</button>
           <button type="button" data-source="noah">Noah's Hub</button>
-          <button type="button" data-source="lumin">Lumin</button>
           <button type="button" data-source="truffled">Truffled</button>
+          <button type="button" data-source="maths">Maths CDN</button>
+          <button type="button" data-source="visn">Visnalize</button>
         </div>
       </div>
     </div>
@@ -1495,8 +1497,7 @@ function addToRecent(game) {
  author: game.author || 'Unknown',
  resolvedCover: game.resolvedCover || '',
  resolvedUrl: game.resolvedUrl || '',
- source: game.source || 'axiom',
- luminId: game.luminId || null
+ source: game.source || 'axiom'
  };
  player.recent = player.recent.filter(r => (r.name + '|' + r.resolvedUrl).toLowerCase() !== (entry.name + '|' + entry.resolvedUrl).toLowerCase());
  player.recent.unshift(entry);
@@ -1540,152 +1541,6 @@ const externalSources = [
  }
 ];
 
-
-let luminReady = false;
-let luminInitPromise = null;
-
-async function initLumin() {
-  if (luminReady) return true;
-  if (typeof Lumin === 'undefined') {
-    console.warn('[Lumin] SDK not loaded');
-    return false;
-  }
-  if (luminInitPromise) return luminInitPromise;
-
-  luminInitPromise = (async () => {
-    try {
-      // headless used only for getGameUrl when needed
-      await Lumin.init({
-        headless: true,
-        onError: (err) => console.warn('[Lumin]', err?.message || err)
-      });
-      luminReady = true;
-      return true;
-    } catch (e) {
-      console.warn('[Lumin] init failed', e);
-      luminReady = false;
-      return false;
-    }
-  })();
-
-  return luminInitPromise;
-}
-
-async function fetchLuminSource() {
-  const ok = await initLumin();
-  if (!ok) return [];
-
-  try {
-    // First page to learn total pages
-    const first = await Lumin.getGames({ page: 1, limit: 50 });
-    let allRaw = Array.isArray(first?.games) ? first.games.slice() : [];
-    const totalPages = Math.max(1, first?.pages || 1);
-    const totalGames = first?.total || allRaw.length;
-
-    if (statusLine) {
-      statusLine.textContent = 'Loading games (1/' + totalPages + ')...';
-    }
-
-    // Fetch remaining pages concurrently so a large Lumin library loads much faster.
-    if (totalPages > 1) {
-      const pageNumbers = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
-      const pageResults = await Promise.all(pageNumbers.map(async (page) => {
-        try {
-          const res = await Lumin.getGames({ page, limit: 50 });
-          return Array.isArray(res?.games) ? res.games : [];
-        } catch (e) {
-          console.warn('[games] page ' + page + ' failed', e);
-          return [];
-        }
-      }));
-      for (const games of pageResults) allRaw.push(...games);
-    }
-
-    // Deduplicate by id
-    const seenIds = new Set();
-    const filtered = [];
-    for (const g of allRaw) {
-      if (!g || !g.id || seenIds.has(g.id)) continue;
-      seenIds.add(g.id);
-      filtered.push(g);
-    }
-
-    // Resolve cover images in batches
-    const results = [];
-    const batchSize = 16;
-
-    for (let i = 0; i < filtered.length; i += batchSize) {
-      const batch = filtered.slice(i, i + batchSize);
-      const resolved = await Promise.all(batch.map(async (g) => {
-        let cover = '';
-        try {
-          if (g.image_token && typeof Lumin.getImageUrl === 'function') {
-            cover = await Lumin.getImageUrl(g.image_token);
-          } else if (g.image || g.cover || g.thumbnail) {
-            cover = g.image || g.cover || g.thumbnail;
-          }
-        } catch (_) {}
-
-        return {
-          name: g.name || g.id,
-          author: '',
-          resolvedCover: cover || '',
-          resolvedUrl: null,
-          luminId: g.id,
-          source: 'lumin',
-          special: []
-        };
-      }));
-      results.push(...resolved);
-
-      if (statusLine && filtered.length > 40) {
-        statusLine.textContent = 'Loading covers (' + Math.min(i + batchSize, filtered.length) + '/' + filtered.length + ')...';
-      }
-    }
-
-    console.log('[games] loaded extra', results.length, '(API total:', totalGames + ')');
-    return results;
-  } catch (err) {
-    console.warn('[games] extra source failed', err);
-    return [];
-  }
-}
-
-async function openLuminGame(game) {
-  if (!game?.luminId) {
-    if (typeof showToast === 'function') showToast('Could not open game');
-    return;
-  }
-
-  const ok = await initLumin();
-  if (!ok) {
-    if (typeof showToast === 'function') showToast('Game source unavailable');
-    return;
-  }
-
-  try {
-    if (statusLine) statusLine.textContent = 'Loading ' + (game.name || 'game') + '...';
-
-    const result = await Lumin.getGameUrl(game.luminId);
-    const url = result?.url;
-    if (!url) throw new Error('No URL returned');
-
-    addToRecent(game);
-    const proxied = buildProxySrc(url);
-
-    if (settings.openAboutBlank) {
-      openGameInAboutBlank(game.name || 'Game', proxied);
-    } else {
-      openProxiedInModal(game.name || 'Game', proxied);
-    }
-
-    setGamesReadyStatus();
-  } catch (err) {
-    console.warn('[games] open failed', err);
-    if (typeof showToast === 'function') showToast('Could not load this game');
-    setGamesReadyStatus();
-  }
-}
 
 /* ========== FULL GAME LIST ========== */
 const customGames = [
@@ -2031,7 +1886,12 @@ function createGameCard(game, i) {
   card.className = 'game-card';
   card.style.animationDelay = (Math.min(i, 24) * 0.02) + 's';
   const src = game.source || 'axiom';
-  const srcLabel = src === 'gnmath' ? 'GN Math' : src === 'noah' ? "Noah's" : src === 'lumin' ? 'Lumin' : src === 'truffled' ? 'Truffled' : 'Axiom';
+  const srcLabel = src === 'gnmath' ? 'GN Math'
+    : src === 'noah' ? "Noah's"
+    : src === 'truffled' ? 'Truffled'
+    : src === 'maths' ? 'Maths'
+    : src === 'visn' ? 'Visn'
+    : 'Axiom';
   const fav = isFavorite(game);
   const favClass = fav ? 'favorited' : '';
   const favIcon = fav ? '*' : '*';
@@ -2184,8 +2044,7 @@ function handleSearch() {
  const query = searchInput.value.toLowerCase().trim();
  if (clearSearchBtn) clearSearchBtn.style.display = query ? 'block' : 'none';
 
- // All sources, including Lumin / Truffled, use the same Axiom game grid.
- // Truffled games always appear in the list (only exact URL clones were stripped on load).
+ // All sources use the same Axiom game grid (no URL dedupe).
  let results = allGames;
 
  if (currentFilter === 'favorites') {
@@ -2278,6 +2137,75 @@ async function fetchNoahSource() {
  }
 }
 
+
+/* ========== MATHS CDN (swarmintelli ~385 quality games) ========== */
+async function fetchMathsSource() {
+  const urls = [
+    'https://cdn.jsdelivr.net/gh/swarmintelli/Unblocked-Games-CDN@main/games.json',
+    'https://raw.githubusercontent.com/swarmintelli/Unblocked-Games-CDN/main/games.json'
+  ];
+  let data = null;
+  for (const u of urls) {
+    try {
+      const res = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now());
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+      console.log('[maths] loaded from', u);
+      break;
+    } catch (err) {
+      console.warn('[maths] failed', u, err && err.message);
+    }
+  }
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter(g => g && (g.name || g.title) && (g.game_url || g.url || g.gameUrl))
+    .map(g => {
+      const url = String(g.game_url || g.url || g.gameUrl || '').trim();
+      const cover = String(g.game_image_icon || g.image || g.cover || g.icon || '').trim();
+      return {
+        name: g.name || g.title,
+        author: g.author || 'Maths CDN',
+        resolvedCover: cover,
+        resolvedUrl: url,
+        source: 'maths',
+        special: []
+      };
+    })
+    .filter(g => g.resolvedUrl && /^https?:\/\//i.test(g.resolvedUrl));
+}
+
+/* ========== VISNALIZE (tiny curated ~26) ========== */
+async function fetchVisnalizeSource() {
+  const urls = [
+    'https://cdn.jsdelivr.net/gh/Visnalize/resources@main/games.json',
+    'https://raw.githubusercontent.com/Visnalize/resources/main/games.json'
+  ];
+  let data = null;
+  for (const u of urls) {
+    try {
+      const res = await fetch(u + (u.includes('?') ? '&' : '?') + 't=' + Date.now());
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+      console.log('[visn] loaded from', u);
+      break;
+    } catch (err) {
+      console.warn('[visn] failed', u, err && err.message);
+    }
+  }
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter(g => g && g.name && (g.url || g.mUrl))
+    .map(g => ({
+      name: g.name,
+      author: g.creator || 'Visnalize',
+      resolvedCover: g.icon || '',
+      resolvedUrl: g.url || g.mUrl,
+      source: 'visn',
+      special: g.openInTab ? ['tab'] : []
+    }))
+    .filter(g => g.resolvedUrl && /^https?:\/\//i.test(g.resolvedUrl));
+}
+
 /* ========== TRUFFLED (same pattern as GN Math) ========== */
 const TRUFFLED_ORIGIN = 'https://truffled.lol';
 // Prefer CORS-friendly mirrors (truffled.lol itself blocks cross-origin fetch)
@@ -2353,78 +2281,30 @@ async function loadAllSources() {
     special: g.special || []
   }));
 
-  // Load the normal sources together instead of waiting on each one.
-  const [externalLists, noahGames, truffledGames] = await Promise.all([
+  // Load sources in parallel (no URL dedupe â every source keeps its full list)
+  const [externalLists, noahGames, truffledGames, mathsGames, visnGames] = await Promise.all([
     Promise.all(externalSources.map(src => fetchGnMathSource(src))),
     fetchNoahSource(),
-    fetchTruffledSource()
+    fetchTruffledSource(),
+    fetchMathsSource(),
+    fetchVisnalizeSource()
   ]);
 
   const gnGames = externalLists.flat();
-  // Keep every source entry (including all Truffled games). Only strip exact URL clones.
-  const baseGames = [...axiomGames, ...gnGames, ...noahGames, ...truffledGames];
+  const baseGames = [
+    ...axiomGames,
+    ...gnGames,
+    ...noahGames,
+    ...truffledGames,
+    ...mathsGames,
+    ...visnGames
+  ];
 
-  allGames = dedupeGamesByUrl(baseGames);
+  allGames = baseGames;
   try { localStorage.setItem('axiomGamesCache', JSON.stringify(allGames)); } catch (_) {}
   setGamesReadyStatus();
   buildFilterBar();
   handleSearch();
-
-  // Lumin is still a normal source, but it is non-blocking.
-  fetchLuminSource().then(luminGames => {
-    if (!Array.isArray(luminGames) || !luminGames.length) return;
-    allGames = dedupeGamesByUrl([...allGames, ...luminGames]);
-    try { localStorage.setItem('axiomGamesCache', JSON.stringify(allGames)); } catch (_) {}
-    setGamesReadyStatus();
-    buildFilterBar();
-    handleSearch();
-  }).catch(err => console.warn('[games] background Lumin load failed', err));
-}
-
-function normalizeGameName(name) {
-  return String(name || '')
-    .toLowerCase()
-    .replace(/,?\s*webport\s*$/i, '')
-    .replace(/['â]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/** Exact URL / lumin id only â keeps every source's full list intact */
-function dedupeGamesByUrl(games) {
-  const unique = [];
-  const seenUrl = new Set();
-  for (const item of games) {
-    if (!item || !item.name) continue;
-    const urlKey = String(item.resolvedUrl || item.luminId || '').toLowerCase().trim();
-    if (urlKey && seenUrl.has(urlKey)) continue;
-    if (urlKey) seenUrl.add(urlKey);
-    unique.push(item);
-  }
-  return unique;
-}
-
-/**
- * Name-level dedupe for the "All" grid only.
- * Prefer earlier sources (Axiom â GN â Noah â Truffled â Lumin) when titles match.
- */
-function dedupeGamesByName(games) {
-  const unique = [];
-  const seenName = new Set();
-  for (const item of games) {
-    if (!item || !item.name) continue;
-    const nameKey = normalizeGameName(item.name);
-    if (nameKey && seenName.has(nameKey)) continue;
-    if (nameKey) seenName.add(nameKey);
-    unique.push(item);
-  }
-  return unique;
-}
-
-// Back-compat alias
-function dedupeGames(games) {
-  return dedupeGamesByUrl(games);
 }
 
 /* ========== GAME / APP / LINKS OPENING ========== */
@@ -2920,7 +2800,7 @@ if (!window.__axiomProxyLoadHooked) {
   });
 }
 
-/** Open a game URL through the Scramjet proxy embed (same path Lumin uses) â no browser chrome */
+/** Open a game URL through the Scramjet proxy embed â no browser chrome */
 function openProxiedInModal(name, url) {
   if (!url) return;
   const proxied = (typeof url === 'string' && typeof PROXY_EMBED !== 'undefined' && url.indexOf(PROXY_EMBED) === 0)
@@ -2960,28 +2840,28 @@ function openProxiedInModal(name, url) {
 
 function gameNeedsProxy(game) {
   if (!game) return false;
-  if (game.source === 'truffled') return true;
+  // External lists always use the same Scramjet proxy path as Truffled
+  const src = (game.source || 'axiom').toLowerCase();
+  if (['truffled', 'maths', 'visn', 'gnmath', 'noah'].includes(src)) return true;
   if (game.frameType === 'proxy' || game.frameType === 'unity' || game.frameType === 'unityframe') return true;
-  if (Array.isArray(game.special) && game.special.some(s => /proxy|unity/i.test(String(s)))) return true;
-  // Hosted on truffled.lol domain
+  if (Array.isArray(game.special) && game.special.some(s => /proxy|unity|tab/i.test(String(s)))) return true;
   try {
-    if (game.resolvedUrl && /truffled\.lol/i.test(game.resolvedUrl)) return true;
+    const u = String(game.resolvedUrl || '');
+    // External multiplayer hosts (not self-hosted jsdelivr singlefiles)
+    if (u && !/cdn\.jsdelivr\.net|raw\.githubusercontent\.com/i.test(u)) {
+      if (/truffled\.lol|hfmanor\.com|shellshock\.io|krunker\.io|bloxd\.io|voxiom\.io|gamezop|quizzop/i.test(u)) return true;
+    }
+    if (/truffled\.lol|hfmanor\.com|shellshock\.io|krunker\.io|bloxd\.io|voxiom\.io/i.test(u)) return true;
   } catch (_) {}
   return false;
 }
 
 function openGame(game) {
- // Lumin games open through the proxy via getGameUrl
- if (game.source === 'lumin' && game.luminId) {
- openLuminGame(game);
- return;
- }
-
  proxyMode = false;
  showProxyBar(false);
  addToRecent(game);
 
- // Truffled / blocked hosts â same proxy embed path as Lumin
+ // Truffled / blocked hosts â proxy embed path
  if (gameNeedsProxy(game) && game.resolvedUrl) {
    const proxied = buildProxySrc(game.resolvedUrl);
    if (settings.openAboutBlank) {
@@ -3013,7 +2893,7 @@ function openGameInAboutBlank(name, url) {
  if (!url) return;
  activeSessionName = name || 'this session';
  activeSessionUrl = url;
- // Proxy embed pages aren't fetchable HTML â load as iframe src instead
+ // Proxy embed pages aren't fetchable HTML Ã¢ÂÂ load as iframe src instead
  const isProxied = typeof PROXY_EMBED !== 'undefined' && String(url).indexOf(PROXY_EMBED) === 0;
  if (isProxied) {
    openInAboutBlankWindow(name, url, false);
@@ -3860,7 +3740,6 @@ window.addEventListener('load', () => {
 
 
 
-<script src="https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -4075,7 +3954,7 @@ window.addEventListener('load', () => {
   function connectChat(){if(chatConnecting||chatChannel)return;chatConnecting=true;const st=$('chatStatus');if(st)st.textContent='Connecting to chat...';chatChannel=sb.channel(CHAT_CHANNEL,{config:{broadcast:{self:true}}});chatChannel.on('broadcast',{event:'msg'},({payload})=>{if(!payload||!payload.body)return;if(payload.id&&messages.some(m=>m.id===payload.id))return;messages.push(payload);if(messages.length>MAX_CACHE)messages=messages.slice(-MAX_CACHE);saveCache();appendMessage(payload);scrollBottom();}).subscribe(status=>{chatConnecting=false;const el=$('chatStatus');if(status==='SUBSCRIBED'){if(el)el.textContent=username?'Online as @'+username:'Connected - set a username to send';}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){if(el)el.textContent='Chat connection error';chatChannel=null;setTimeout(connectChat,3000);}else if(status==='CLOSED')chatChannel=null;});}
   function renderMessages(){const box=$('chatMessages');if(!box)return;box.innerHTML='';if(!messages.length){box.innerHTML='<div class="chat-empty"><p>No messages yet. Say hi!</p></div>';return;}messages.forEach(appendMessage);scrollBottom();}
   function appendMessage(m){const box=$('chatMessages');if(!box)return;const empty=box.querySelector('.chat-empty');if(empty)empty.remove();const mine=!!(username&&m.username===username);const row=el('div','chat-row'+(mine?' mine':''));const time=m.created_at?new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';row.innerHTML=`<div class="chat-bubble"><div class="chat-meta"><span class="chat-user">@${escapeHtml(m.username||'user')}</span><span class="chat-time">${time}</span></div><div class="chat-body">${escapeHtml(m.body||'')}</div></div>`;box.appendChild(row);}
-  async function sendMessage(){if(!username){openUsernameModal();return;}const input=$('chatInput');const body=(input?.value||'').trim();if(!body)return;if(!chatChannel){connectChat();toast('Connecting to chat... try again in a moment.');return;}const payload={id:(crypto.randomUUID&&crypto.randomUUID())||(String(Date.now())+Math.random()),username:username,body:body.slice(0,500),created_at:new Date().toISOString()};input.value='';if(!messages.some(m=>m.id===payload.id)){messages.push(payload);saveCache();appendMessage(payload);scrollBottom();}try{const res=await chatChannel.send({type:'broadcast',event:'msg',payload});if(res&&res.error)toast(res.error.message||'Send failed');}catch(e){toast(e?.message||'Send failed');}}
+    async function sendMessage(){if(!username){openUsernameModal();return;}const input=$('chatInput');const body=(input?.value||'').trim();if(!body)return;if(!chatChannel){connectChat();toast('Connecting to chat... try again in a moment.');return;}const payload={id:(crypto.randomUUID&&crypto.randomUUID())||(String(Date.now())+Math.random()),username:username,body:body.slice(0,500),created_at:new Date().toISOString()};input.value='';if(!messages.some(m=>m.id===payload.id)){messages.push(payload);saveCache();appendMessage(payload);scrollBottom();}try{const res=await chatChannel.send({type:'broadcast',event:'msg',payload});if(res&&res.error)toast(res.error.message||'Send failed');}catch(e){toast(e?.message||'Send failed');}}
   function updateAuthUI(){const btn=$('chatLoginBtn'),status=$('chatStatus'),input=$('chatInput'),send=$('chatSendBtn'),acc=$('railAccount');if(btn)btn.textContent=username?'@'+username:'Set username';if(status&&chatChannel)status.textContent=username?'Online as @'+username:'Connected - set a username to send';if(input){input.placeholder=username?'Say something...':'Set a username to send...';}if(acc)acc.textContent=username?'@'+username:'Username';}
   async function boot(){try{injectStyles();ensureUsernameUI();ensureChatUI();messages=loadCache();renderMessages();if(typeof window.showView==='function'&&!window.showView.__axiomWrapped){const originalShowView=window.showView;const wrapped=function(name){originalShowView(name);if(name==='chat')setTimeout(scrollBottom,0);};wrapped.__axiomWrapped=true;window.showView=wrapped;}connectChat();updateAuthUI();}catch(e){console.error('[Axiom username]',e);const st=$('chatStatus');if(st)st.textContent='Chat unavailable';}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
