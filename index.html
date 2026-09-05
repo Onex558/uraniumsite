@@ -2273,38 +2273,94 @@ async function fetchTruffledSource() {
 }
 
 async function loadAllSources() {
+  if (!statusLine) return;
   statusLine.textContent = 'Loading games...';
 
-  const axiomGames = customGames.map(g => ({
+  const axiomGames = Array.isArray(customGames) ? customGames.map(g => ({
     ...g,
     source: 'axiom',
-    special: g.special || []
-  }));
+    special: Array.isArray(g.special) ? g.special : []
+  })) : [];
 
-  // Load sources in parallel (no URL dedupe â every source keeps its full list)
-  const [externalLists, noahGames, truffledGames, mathsGames, visnGames] = await Promise.all([
-    Promise.all(externalSources.map(src => fetchGnMathSource(src))),
-    fetchNoahSource(),
-    fetchTruffledSource(),
-    fetchMathsSource(),
-    fetchVisnalizeSource()
+  // Show Axiom's built-in games immediately. External lists should never
+  // prevent the main library from rendering.
+  allGames = axiomGames.slice();
+  try {
+    localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
+  } catch (_) {}
+  setGamesReadyStatus();
+  buildFilterBar();
+  handleSearch();
+
+  const safe = async (label, fn) => {
+    try {
+      const result = await fn();
+      return Array.isArray(result) ? result : [];
+    } catch (err) {
+      console.warn('[Axiom source failed]', label, err);
+      return [];
+    }
+  };
+
+  // allSettled-style loading: one dead/blocked source can never stop the
+  // other game sources from appearing.
+  const results = await Promise.all([
+    safe('GN Math', async () => {
+      const lists = await Promise.all(
+        externalSources.map(src => safe(src.name || 'GN Math', () => fetchGnMathSource(src)))
+      );
+      return lists.flat();
+    }),
+    safe("Noah's Hub", fetchNoahSource),
+    safe('Truffled', fetchTruffledSource),
+    safe('Maths CDN', fetchMathsSource),
+    safe('Visnalize', fetchVisnalizeSource)
   ]);
 
-  const gnGames = externalLists.flat();
-  const baseGames = [
-    ...axiomGames,
+  const [gnGames, noahGames, truffledGames, mathsGames, visnGames] = results;
+
+  const externalGames = [
     ...gnGames,
     ...noahGames,
     ...truffledGames,
     ...mathsGames,
     ...visnGames
-  ];
+  ].filter(g =>
+    g &&
+    g.name &&
+    g.resolvedUrl &&
+    /^https?:\/\//i.test(String(g.resolvedUrl))
+  );
 
-  allGames = baseGames;
-  try { localStorage.setItem('axiomGamesCache', JSON.stringify(allGames)); } catch (_) {}
+  allGames = [...axiomGames, ...externalGames];
+
+  // Remove only exact duplicate name+URL entries. Games from different
+  // sources are otherwise preserved.
+  const seen = new Set();
+  allGames = allGames.filter(g => {
+    const key = String(g.name).toLowerCase() + '|' + String(g.resolvedUrl);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  try {
+    localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
+  } catch (_) {}
+
   setGamesReadyStatus();
   buildFilterBar();
   handleSearch();
+
+  console.log('[Axiom] Games loaded:', {
+    axiom: axiomGames.length,
+    gnmath: gnGames.length,
+    noah: noahGames.length,
+    truffled: truffledGames.length,
+    maths: mathsGames.length,
+    visn: visnGames.length,
+    total: allGames.length
+  });
 }
 
 /* ========== GAME / APP / LINKS OPENING ========== */
@@ -2803,19 +2859,27 @@ if (!window.__axiomProxyLoadHooked) {
 /** Open a game URL through the Scramjet proxy embed â no browser chrome */
 function openProxiedInModal(name, url) {
   if (!url) return;
-  const proxied = (typeof url === 'string' && typeof PROXY_EMBED !== 'undefined' && url.indexOf(PROXY_EMBED) === 0)
-    ? url
-    : buildProxySrc(url);
+
+  const originalUrl = String(url).trim();
+  const proxied = (typeof PROXY_EMBED !== 'undefined' &&
+                   originalUrl.indexOf(PROXY_EMBED) === 0)
+    ? originalUrl
+    : buildProxySrc(originalUrl);
 
   proxyMode = false;
   showProxyBar(false);
   activeSessionName = name || 'Game';
-  activeSessionUrl = proxied;
+  activeSessionUrl = originalUrl;
 
   const oldMoviesBtn = document.getElementById('oldMoviesBtn');
   if (oldMoviesBtn) oldMoviesBtn.style.display = 'none';
 
   hideModalError();
+  if (currentBlobUrl) {
+    try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
+    currentBlobUrl = null;
+  }
+
   gameFrame.src = 'about:blank';
   gameModal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -2828,22 +2892,43 @@ function openProxiedInModal(name, url) {
   modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
 
   showProxyLoadScreen(name);
-  gameFrame.src = proxied;
-  // Also hide when the iframe itself finishes its first load
+
+  let proxyLoaded = false;
   const onLoad = () => {
+    proxyLoaded = true;
     gameFrame.removeEventListener('load', onLoad);
-    // small delay so the proxy UI can settle under the cover
-    setTimeout(hideProxyLoadScreen, 400);
+    setTimeout(hideProxyLoadScreen, 350);
   };
   gameFrame.addEventListener('load', onLoad);
+
+  gameFrame.src = proxied;
+
+  /*
+   * Some proxy mirrors are unavailable/blocked. After a timeout, try the
+   * original game URL directly. This allows games that support iframes
+   * natively to work even when the proxy is down.
+   */
+  setTimeout(() => {
+    if (!gameModal.classList.contains('open') || proxyLoaded) return;
+    console.warn('[Axiom] Proxy did not finish; trying direct game URL:', originalUrl);
+    hideProxyLoadScreen();
+    gameFrame.src = originalUrl;
+  }, 8000);
+
+  setTimeout(() => {
+    if (!gameModal.classList.contains('open')) return;
+    hideProxyLoadScreen();
+    hideModalError();
+  }, 12000);
 }
 
 function gameNeedsProxy(game) {
   if (!game) return false;
-  // External lists always use the same Scramjet proxy path as Truffled
+  // Prefer direct loading for normal hosted HTML games. Only hosts that
+  // are known to need proxying are routed through the proxy first.
   const src = (game.source || 'axiom').toLowerCase();
-  if (['truffled', 'maths', 'visn', 'gnmath', 'noah'].includes(src)) return true;
   if (game.frameType === 'proxy' || game.frameType === 'unity' || game.frameType === 'unityframe') return true;
+  if (src === 'truffled') return true;
   if (Array.isArray(game.special) && game.special.some(s => /proxy|unity|tab/i.test(String(s)))) return true;
   try {
     const u = String(game.resolvedUrl || '');
@@ -2910,53 +2995,75 @@ function openGameInAboutBlank(name, url) {
 }
 
 function openInModal(name, url) {
- if (!url) return;
- proxyMode = false;
- showProxyBar(false);
- gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized');
- if (typeof showMusicPill === 'function') showMusicPill(false);
+  if (!url) return;
 
- activeSessionName = name || 'this session';
- activeSessionUrl = url;
+  proxyMode = false;
+  showProxyBar(false);
+  gameModal.classList.remove('proxy-mode', 'music-mode', 'music-minimized');
+  if (typeof showMusicPill === 'function') showMusicPill(false);
 
- const oldMoviesBtn = document.getElementById('oldMoviesBtn');
- if (name && name.toLowerCase().includes('movie')) {
-  if (oldMoviesBtn) oldMoviesBtn.style.display = 'inline-block';
- } else {
-  if (oldMoviesBtn) oldMoviesBtn.style.display = 'none';
- }
+  activeSessionName = name || 'this session';
+  activeSessionUrl = url;
 
- hideModalError();
- gameFrame.src = 'about:blank';
- gameModal.style.display = 'flex';
- document.body.style.overflow = 'hidden';
- gameModal.classList.add('open');
- resetModalChrome();
- showModalChrome();
- clearTimeout(modalChromeHideTimer);
- modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
+  const oldMoviesBtn = document.getElementById('oldMoviesBtn');
+  if (oldMoviesBtn) oldMoviesBtn.style.display =
+    name && name.toLowerCase().includes('movie') ? 'inline-block' : 'none';
 
- const cacheBuster = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
- fetch(cacheBuster)
- .then(res => {
- if (!res.ok) throw new Error('HTTP_' + res.status);
- return res.text();
- })
- .then(html => {
- if (html.length < 50) throw new Error('EMPTY');
- if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
- const safety = getCloakingScript();
- const finalHtml = html.toLowerCase().includes('<head>')
- ? html.replace(/<head>/i, '<head>' + safety)
- : safety + html;
- currentBlobUrl = URL.createObjectURL(new Blob([finalHtml], {type:'text/html;charset=utf-8'}));
- gameFrame.src = currentBlobUrl;
- })
- .catch(err => {
- console.warn('Blob load failed, trying direct iframe:', err.message);
- gameFrame.src = url;
- hideModalError();
- });
+  hideModalError();
+  if (currentBlobUrl) {
+    try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
+    currentBlobUrl = null;
+  }
+
+  gameFrame.src = 'about:blank';
+  gameModal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  gameModal.classList.add('open');
+  resetModalChrome();
+  showModalChrome();
+  clearTimeout(modalChromeHideTimer);
+  modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
+
+  /*
+   * IMPORTANT:
+   * Do NOT fetch the game HTML and put it into a Blob.
+   * Blob URLs change the document origin, which breaks games that use
+   * relative JS/CSS/image/asset paths.
+   *
+   * Loading the original URL directly keeps the game's real origin,
+   * so relative assets continue to resolve correctly.
+   */
+  const target = String(url).trim();
+  let loaded = false;
+
+  const onLoad = () => {
+    loaded = true;
+    hideModalError();
+    gameFrame.removeEventListener('load', onLoad);
+  };
+
+  gameFrame.addEventListener('load', onLoad);
+
+  // Give the browser a clean iframe first.
+  setTimeout(() => {
+    if (!gameModal.classList.contains('open')) return;
+    gameFrame.src = target;
+  }, 30);
+
+  // If the first navigation fails silently, reload the direct URL once.
+  setTimeout(() => {
+    if (!gameModal.classList.contains('open') || loaded) return;
+    try {
+      gameFrame.src = target + (target.includes('?') ? '&' : '?') + 'axiom_retry=' + Date.now();
+    } catch (_) {}
+  }, 5000);
+
+  // Never replace a working game with the error screen just because an
+  // iframe load event is unavailable for a cross-origin document.
+  setTimeout(() => {
+    if (!gameModal.classList.contains('open')) return;
+    if (!loaded) hideModalError();
+  }, 9000);
 }
 
 function closeModal() {
