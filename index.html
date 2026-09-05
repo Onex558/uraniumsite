@@ -2077,68 +2077,73 @@ if (clearSearchBtn) {
 
 async function fetchGnMathSource(src) {
  try {
- const res = await fetch(src.json + '?t=' + Date.now());
- if (!res.ok) throw new Error('HTTP ' + res.status);
- const data = await res.json();
- if (!Array.isArray(data)) return [];
- return data
- .filter(g => g && g.name && g.url && g.id !== -1)
- .map(g => {
- let resolvedUrl = String(g.url)
- .replace(/\{HTML_URL\}/g, src.html)
- .replace(/\{COVER_URL\}/g, src.cover);
- let resolvedCover = String(g.cover || '')
- .replace(/\{COVER_URL\}/g, src.cover)
- .replace(/\{HTML_URL\}/g, src.html);
- if (resolvedUrl.startsWith('{')) resolvedUrl = g.url;
- if (resolvedCover.startsWith('{') || !resolvedCover) {
- resolvedCover = '';
- }
- return {
- name: g.name,
- author: g.author || 'GN Math',
- resolvedCover,
- resolvedUrl,
- source: src.sourceTag,
- special: Array.isArray(g.special) ? g.special : [],
- id: g.id
- };
- })
- .filter(g => g.resolvedUrl && (g.resolvedUrl.startsWith('http') || g.resolvedUrl.startsWith('//')));
+  const res = await fetch(src.json + '?t=' + Date.now());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (!Array.isArray(data)) return [];
+  return data
+   .filter(g => g && g.name && g.url && g.id !== -1)
+   .map(g => {
+    let resolvedUrl = String(g.url)
+      .replace(/\{HTML_URL\}/g, src.html)
+      .replace(/\{COVER_URL\}/g, src.cover);
+    let resolvedCover = String(g.cover || '')
+      .replace(/\{COVER_URL\}/g, src.cover)
+      .replace(/\{HTML_URL\}/g, src.html);
+    try { resolvedUrl = new URL(resolvedUrl, src.html).href; } catch (_) {}
+    try { if (resolvedCover) resolvedCover = new URL(resolvedCover, src.cover + '/').href; } catch (_) {}
+    return {
+      name: String(g.name),
+      author: g.author || 'GN Math',
+      resolvedCover: /^https?:\/\//i.test(resolvedCover) ? resolvedCover : '',
+      resolvedUrl,
+      source: src.sourceTag,
+      special: Array.isArray(g.special) ? g.special : [],
+      id: g.id,
+      frameType: g.frameType || 'iframe'
+    };
+   })
+   .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
  } catch (err) {
- console.warn('Failed to load', src.name, err);
- return [];
+  console.warn('Failed to load', src.name, err);
+  return [];
  }
 }
 
 async function fetchNoahSource() {
  try {
   const url = 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/nth.js?t=' + Date.now();
+  const sourceBase = url.split('?')[0];
   const res = await fetch(url);
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const text = await res.text();
-  // nth.js is: const games = [ { title, desc, url, image }, ... ];
   const match = text.match(/const\s+games\s*=\s*(\[[\s\S]*?\]);/);
   if (!match) throw new Error('Could not parse games array');
   const data = (new Function('return ' + match[1]))();
   if (!Array.isArray(data)) return [];
   return data
    .filter(g => g && (g.title || g.name) && g.url)
-   .map(g => ({
-    name: g.title || g.name,
-    author: 'Noah\'s Tutoring Hub',
-    resolvedCover: g.image || g.cover || '',
-    resolvedUrl: g.url,
-    source: 'noah',
-    special: []
-   }))
-   .filter(g => g.resolvedUrl && (g.resolvedUrl.startsWith('http') || g.resolvedUrl.startsWith('//')));
+   .map(g => {
+    let resolvedUrl = String(g.url);
+    let resolvedCover = String(g.image || g.cover || '');
+    try { resolvedUrl = new URL(resolvedUrl, sourceBase).href; } catch (_) {}
+    try { if (resolvedCover) resolvedCover = new URL(resolvedCover, sourceBase).href; } catch (_) {}
+    return {
+      name: String(g.title || g.name),
+      author: 'Noah\'s Tutoring Hub',
+      resolvedCover: /^https?:\/\//i.test(resolvedCover) ? resolvedCover : '',
+      resolvedUrl,
+      source: 'noah',
+      special: Array.isArray(g.special) ? g.special : [],
+      frameType: g.frameType || 'iframe'
+    };
+   })
+   .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
  } catch (err) {
   console.warn('Failed to load Noah\'s Tutoring Hub', err);
   return [];
  }
 }
-
 
 
 /* ========== TRUFFLED (same pattern as GN Math) ========== */
@@ -2374,7 +2379,7 @@ function fetchHtmlForAboutBlank(url) {
  });
 }
 
-const PROXY_ORIGIN = 'https://pysicalogy.b-cdn.net/';
+const PROXY_ORIGIN = 'https://pysicalogy.b-cdn.net';
 const PROXY_EMBED = PROXY_ORIGIN + '/embed.html#';
 let proxyMode = false;
 
@@ -2853,44 +2858,52 @@ function openProxiedInModal(name, url) {
 
 function gameNeedsProxy(game) {
   if (!game) return false;
-  // Prefer direct loading for normal hosted HTML games. Only hosts that
-  // are known to need proxying are routed through the proxy first.
   const src = (game.source || 'axiom').toLowerCase();
   if (game.frameType === 'proxy' || game.frameType === 'unity' || game.frameType === 'unityframe') return true;
   if (src === 'truffled') return true;
   if (Array.isArray(game.special) && game.special.some(s => /proxy|unity|tab/i.test(String(s)))) return true;
   try {
     const u = String(game.resolvedUrl || '');
-    // External multiplayer hosts (not self-hosted jsdelivr singlefiles)
-    if (u && !/cdn\.jsdelivr\.net|raw\.githubusercontent\.com/i.test(u)) {
-      if (/truffled\.lol|hfmanor\.com|shellshock\.io|krunker\.io|bloxd\.io|voxiom\.io|gamezop|quizzop/i.test(u)) return true;
-    }
-    if (/truffled\.lol|hfmanor\.com|shellshock\.io|krunker\.io|bloxd\.io|voxiom\.io/i.test(u)) return true;
+    const host = new URL(u).hostname.toLowerCase();
+    // Axiom's own static game files can load directly. Other external hosts
+    // are sent through the same game proxy path so X-Frame-Options/CSP is
+    // much less likely to make a random game appear blank.
+    if (!/(^|\.)cdn\.jsdelivr\.net$/.test(host) &&
+        !/(^|\.)raw\.githubusercontent\.com$/.test(host)) return true;
   } catch (_) {}
   return false;
 }
 
 function openGame(game) {
- proxyMode = false;
- showProxyBar(false);
- addToRecent(game);
+  if (!game) return;
+  const url = String(game.resolvedUrl || '').trim();
+  if (!/^https?:\/\//i.test(url)) {
+    showToast((game.name || 'Game') + ' has an invalid game URL');
+    console.warn('[Axiom] Invalid game entry:', game);
+    return;
+  }
 
- // Truffled / blocked hosts â proxy embed path
- if (gameNeedsProxy(game) && game.resolvedUrl) {
-   const proxied = buildProxySrc(game.resolvedUrl);
-   if (settings.openAboutBlank) {
-     openGameInAboutBlank(game.name, proxied);
-   } else {
-     openProxiedInModal(game.name, proxied);
-   }
-   return;
- }
+  proxyMode = false;
+  showProxyBar(false);
+  addToRecent(game);
 
- if (settings.openAboutBlank) {
- openGameInAboutBlank(game.name, game.resolvedUrl);
- } else {
- openInModal(game.name, game.resolvedUrl, game);
- }
+  // External games use the same proxy path so games blocked by iframe
+  // restrictions have a much better chance of loading.
+  if (gameNeedsProxy(game)) {
+    const proxied = buildProxySrc(url);
+    if (settings.openAboutBlank) {
+      openGameInAboutBlank(game.name, proxied);
+    } else {
+      openProxiedInModal(game.name, proxied);
+    }
+    return;
+  }
+
+  if (settings.openAboutBlank) {
+    openGameInAboutBlank(game.name, url);
+  } else {
+    openInModal(game.name, url, game);
+  }
 }
 
 function openApp(name, url) {
@@ -3336,9 +3349,13 @@ overlay.onclick = closeSettings;
 
 const randomGameBtn = document.getElementById('randomGameBtn');
 if (randomGameBtn) randomGameBtn.onclick = () => {
- if (!allGames.length) { showToast('Games are still loading'); return; }
- const g = allGames[Math.floor(Math.random() * allGames.length)];
- openGame(g);
+  // Pick from the same list the library is currently displaying, so Random
+  // Game behaves exactly like clicking one of the visible game cards.
+  const pool = (displayedGamesList && displayedGamesList.length ? displayedGamesList : allGames)
+    .filter(g => g && /^https?:\/\//i.test(String(g.resolvedUrl || '').trim()));
+  if (!pool.length) { showToast('Games are still loading'); return; }
+  const g = pool[Math.floor(Math.random() * pool.length)];
+  openGame(g);
 };
 
 const levelBtn = document.getElementById('levelBtn');
