@@ -11,6 +11,7 @@
   </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Permissions-Policy" content="pointer-lock=*, fullscreen=*, gamepad=*, autoplay=*, clipboard-read=*, clipboard-write=*">
 <title>Axiom</title>
 <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">
 <style>
@@ -518,6 +519,10 @@ body::after{
 }
 #gameModal.open #gameFrame{
   display:block !important; visibility:visible !important; opacity:1 !important;
+}
+/* Site custom cursor must not apply while a game is open (breaks lock / aim) */
+#gameModal.open, #gameModal.open *:not(#gameFrame) {
+  cursor: default !important;
 }
 #gameModal:fullscreen{ background:#000; }
 #gameModal:fullscreen #gameFrame{ width:100vw; height:100vh; max-width:none; max-height:none; border:none; border-radius:0; }
@@ -1124,7 +1129,7 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
    </div>
   </div>
  </div>
- <iframe id="gameFrame" allowfullscreen="true" allow="fullscreen *; autoplay *; gamepad *; pointer-lock *; clipboard-read *; clipboard-write *; accelerometer *; gyroscope *; magnetometer *; camera *; microphone *; payment *; midi *; encrypted-media *; picture-in-picture *; display-capture *" referrerpolicy="no-referrer" loading="eager" style="background:#000;"></iframe>
+ <iframe id="gameFrame" tabindex="0" allowfullscreen="true" allow="pointer-lock; fullscreen; gamepad; autoplay; clipboard-read; clipboard-write; accelerometer; gyroscope; magnetometer; camera; microphone; payment; midi; encrypted-media; picture-in-picture; display-capture" referrerpolicy="no-referrer" loading="eager" style="background:#000; outline:none; border:0;"></iframe>
  <div id="proxyLoadScreen" aria-hidden="true">
   <div class="pls-mark">A</div>
   <div class="pls-title">Axiom</div>
@@ -2829,6 +2834,232 @@ function injectBaseHref(html, pageUrl) {
   return tag + html;
 }
 
+/** Helps Minecraft / Eaglercraft / other canvas games lock the cursor inside blob or iframe loads. */
+/**
+ * Pointer lock for Minecraft / FPS — works in normal tabs AND restricted embeds
+ * (Google Apps Script, Google Sites, SVG wrappers) that block real pointer-lock.
+ *
+ * Strategy:
+ * 1) Try real requestPointerLock (no forced lock on menus).
+ * 2) If the host sandbox blocks it → soft-lock: hide cursor, feed movementX/Y,
+ *    pretend document.pointerLockElement is set so Eaglercraft / FPS games work.
+ */
+function injectPointerLockHelper(html) {
+  if (!html || /__axiomPointerLockHelper/i.test(html)) return html;
+  const helper = `<script>(function(){
+if(window.__axiomPointerLockHelper)return;
+window.__axiomPointerLockHelper=true;
+
+var _nativeRPL =
+  HTMLElement.prototype.requestPointerLock ||
+  Element.prototype.requestPointerLock ||
+  HTMLElement.prototype.mozRequestPointerLock ||
+  Element.prototype.mozRequestPointerLock ||
+  HTMLElement.prototype.webkitRequestPointerLock ||
+  Element.prototype.webkitRequestPointerLock ||
+  null;
+var _nativeEPL =
+  Document.prototype.exitPointerLock ||
+  document.exitPointerLock ||
+  Document.prototype.mozExitPointerLock ||
+  document.mozExitPointerLock ||
+  Document.prototype.webkitExitPointerLock ||
+  document.webkitExitPointerLock ||
+  null;
+
+var _softLocked = false;
+var _softEl = null;
+var _lastX = 0, _lastY = 0, _hasLast = false;
+var _failCount = 0;
+var _styleEl = null;
+
+function focusTarget(){
+  try{window.focus();}catch(e){}
+  try{if(document.body){document.body.tabIndex=-1;document.body.focus();}}catch(e){}
+  try{var c=document.querySelector("canvas");if(c){c.tabIndex=0;c.focus();}}catch(e){}
+}
+
+function isRestrictedHost(){
+  try{
+    var h=(location.hostname||"")+(location.href||"");
+    if(/script\\.google|googleusercontent|sites\\.google|google\\.com\\/macros/i.test(h))return true;
+  }catch(e){}
+  try{ if(window!==window.top) return true; }catch(e){ return true; }
+  return false;
+}
+
+function ensureSoftStyle(){
+  if(_styleEl)return;
+  _styleEl=document.createElement("style");
+  _styleEl.id="axiom-soft-pl-style";
+  _styleEl.textContent="html.axiom-soft-pl,html.axiom-soft-pl *{cursor:none!important}";
+  (document.head||document.documentElement).appendChild(_styleEl);
+}
+
+function firePLChange(){
+  try{document.dispatchEvent(new Event("pointerlockchange"));}catch(e){}
+  try{document.dispatchEvent(new Event("mozpointerlockchange"));}catch(e){}
+  try{document.dispatchEvent(new Event("webkitpointerlockchange"));}catch(e){}
+}
+
+function startSoftLock(el){
+  if(_softLocked)return;
+  _softLocked=true;
+  _softEl=el||document.querySelector("canvas")||document.body||document.documentElement;
+  _hasLast=false;
+  ensureSoftStyle();
+  try{document.documentElement.classList.add("axiom-soft-pl");}catch(e){}
+  try{
+    Object.defineProperty(document,"pointerLockElement",{configurable:true,get:function(){return _softLocked?_softEl:null;}});
+  }catch(e){}
+  try{
+    Object.defineProperty(document,"mozPointerLockElement",{configurable:true,get:function(){return _softLocked?_softEl:null;}});
+  }catch(e){}
+  firePLChange();
+}
+
+function stopSoftLock(){
+  if(!_softLocked)return;
+  _softLocked=false;
+  _softEl=null;
+  _hasLast=false;
+  try{document.documentElement.classList.remove("axiom-soft-pl");}catch(e){}
+  firePLChange();
+}
+
+function onSoftMove(ev){
+  if(!_softLocked)return;
+  var dx=0,dy=0;
+  if(typeof ev.movementX==="number"||typeof ev.movementY==="number"){
+    dx=ev.movementX||0; dy=ev.movementY||0;
+  }else if(_hasLast){
+    dx=ev.clientX-_lastX; dy=ev.clientY-_lastY;
+  }
+  _lastX=ev.clientX; _lastY=ev.clientY; _hasLast=true;
+  if(!dx&&!dy)return;
+  try{
+    var ne=new MouseEvent("mousemove",{bubbles:true,cancelable:true,view:window,clientX:ev.clientX,clientY:ev.clientY,screenX:ev.screenX,screenY:ev.screenY});
+    try{Object.defineProperty(ne,"movementX",{get:function(){return dx;}});}catch(e){ne.movementX=dx;}
+    try{Object.defineProperty(ne,"movementY",{get:function(){return dy;}});}catch(e){ne.movementY=dy;}
+    (_softEl||document).dispatchEvent(ne);
+  }catch(e){}
+}
+
+document.addEventListener("mousemove",onSoftMove,true);
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="Escape"&&_softLocked){ stopSoftLock(); }
+},true);
+
+function tryNative(el, opts){
+  if(!_nativeRPL||!el)return null;
+  try{focusTarget();}catch(e){}
+  try{
+    if(opts!==undefined)return _nativeRPL.call(el,opts);
+    return _nativeRPL.call(el);
+  }catch(e1){
+    try{return _nativeRPL.call(el);}catch(e2){return null;}
+  }
+}
+
+function requestLock(el, opts){
+  if(!el)el=document.querySelector("canvas")||document.body||document.documentElement;
+  // Prefer real lock when possible
+  var ret=tryNative(el, opts);
+  // Restricted hosts (Google Script / Sites / nested iframes): soft-lock immediately
+  // so Minecraft works without waiting for a failed native attempt.
+  if(isRestrictedHost()){
+    setTimeout(function(){
+      if(!document.pointerLockElement||document.pointerLockElement===null){
+        // native may still be pending; if after a tick nothing locked, soft-lock
+        if(!_softLocked && !document.pointerLockElement) startSoftLock(el);
+      }
+    }, 120);
+  }
+  return ret;
+}
+
+function exitLock(){
+  stopSoftLock();
+  if(_nativeEPL){
+    try{return _nativeEPL.call(document);}catch(e){}
+  }
+}
+
+function installWrapper(){
+  var wrapped=function(opts){ return requestLock(this, opts); };
+  var exitWrapped=function(){ return exitLock(); };
+  try{Element.prototype.requestPointerLock=wrapped;}catch(e){}
+  try{HTMLElement.prototype.requestPointerLock=wrapped;}catch(e){}
+  try{Element.prototype.mozRequestPointerLock=wrapped;}catch(e){}
+  try{HTMLElement.prototype.mozRequestPointerLock=wrapped;}catch(e){}
+  try{Element.prototype.webkitRequestPointerLock=wrapped;}catch(e){}
+  try{HTMLElement.prototype.webkitRequestPointerLock=wrapped;}catch(e){}
+  try{Document.prototype.exitPointerLock=exitWrapped;}catch(e){}
+  try{document.exitPointerLock=exitWrapped;}catch(e){}
+  try{Document.prototype.mozExitPointerLock=exitWrapped;}catch(e){}
+  try{document.mozExitPointerLock=exitWrapped;}catch(e){}
+}
+
+function wireCanvas(){
+  try{
+    document.querySelectorAll("canvas").forEach(function(c){
+      if(c.__axiomPlWired)return;
+      c.__axiomPlWired=true;
+      if(!c.hasAttribute("tabindex"))c.setAttribute("tabindex","0");
+      c.addEventListener("mousedown",function(){try{c.focus();}catch(e){}},true);
+      c.addEventListener("click",function(){try{c.focus();}catch(e){}},true);
+    });
+  }catch(e){}
+}
+
+// Native failed (sandbox / no gesture) → soft-lock so games still aim
+document.addEventListener("pointerlockerror",function(){
+  _failCount++;
+  try{focusTarget();}catch(e){}
+  var el=document.querySelector("canvas")||document.body||document.documentElement;
+  // After first failure, use soft lock (Google Script never grants real lock)
+  startSoftLock(el);
+},true);
+
+// Also listen: if restricted host and game already called lock but nothing stuck
+var _watch=setInterval(function(){
+  if(!isRestrictedHost())return;
+  // no-op keeper; soft path handles requests
+}, 5000);
+
+installWrapper();
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",function(){focusTarget();wireCanvas();});
+}else{focusTarget();wireCanvas();}
+setInterval(wireCanvas,2000);
+})();<\/script>`;
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (m) => m + helper);
+  }
+  if (/<body[^>]*>/i.test(html)) {
+    return html.replace(/<body[^>]*>/i, (m) => m + helper);
+  }
+  return helper + html;
+}
+
+function focusGameFrame() {
+  try {
+    if (!gameFrame) return;
+    gameFrame.setAttribute('tabindex', '0');
+    gameFrame.focus({ preventScroll: true });
+    if (gameFrame.contentWindow) {
+      try { gameFrame.contentWindow.focus(); } catch (_) {}
+      try {
+        var doc = gameFrame.contentDocument || gameFrame.contentWindow.document;
+        if (doc && doc.body) {
+          doc.body.tabIndex = -1;
+          doc.body.focus();
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+
 async function fetchGameHtml(url) {
   const bust = url + (url.includes('?') ? '&' : '?') + 'ax=' + Date.now();
   const res = await fetch(bust, { mode: 'cors', credentials: 'omit' });
@@ -2836,6 +3067,7 @@ async function fetchGameHtml(url) {
   let html = await res.text();
   if (!html || html.length < 40) throw new Error('empty');
   html = injectBaseHref(html, url);
+  html = injectPointerLockHelper(html);
   return html;
 }
 
@@ -2849,7 +3081,27 @@ function loadHtmlIntoFrame(html) {
   currentBlobUrl = URL.createObjectURL(blob);
   gameFrame.style.display = 'block';
   gameFrame.style.visibility = 'visible';
+  const onReady = () => {
+    focusGameFrame();
+    setTimeout(focusGameFrame, 80);
+    setTimeout(focusGameFrame, 250);
+    setTimeout(focusGameFrame, 700);
+  };
+  gameFrame.addEventListener('load', onReady, { once: true });
   gameFrame.src = currentBlobUrl;
+  // Keep focus on the game so requestPointerLock is allowed after you click in-world
+  if (!gameModal.__axiomFocusWired) {
+    gameModal.__axiomFocusWired = true;
+    gameModal.addEventListener('mousedown', (e) => {
+      if (e.target === gameFrame || e.target === gameModal || e.target.id === 'proxyLoadScreen') {
+        focusGameFrame();
+      }
+    });
+    gameFrame.addEventListener('mousedown', () => focusGameFrame());
+    gameFrame.addEventListener('mouseenter', () => focusGameFrame());
+    // Clicking the iframe transfers user activation into the game document
+    gameFrame.addEventListener('click', () => focusGameFrame());
+  }
 }
 
 function prepareGameModal(name) {
@@ -2877,6 +3129,9 @@ function prepareGameModal(name) {
   showModalChrome();
   clearTimeout(modalChromeHideTimer);
   modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
+  // Focus iframe so Minecraft / pointer-lock games can capture the cursor on click
+  setTimeout(focusGameFrame, 50);
+  setTimeout(focusGameFrame, 300);
 }
 
 /** Proxy path for hosts that block iframes */
@@ -2898,13 +3153,12 @@ function openProxiedInModal(name, url) {
     })
     .catch((err) => {
       console.warn('[Axiom] fetch failed, trying proxy', err);
+      gameFrame.addEventListener('load', focusGameFrame, { once: true });
       gameFrame.src = buildProxySrc(real);
+      setTimeout(focusGameFrame, 200);
       setTimeout(() => {
         hideProxyLoadScreen();
-        // If still useless, last try: open in a new tab
-        setTimeout(() => {
-          if (!gameModal.classList.contains('open')) return;
-        }, 2000);
+        setTimeout(focusGameFrame, 100);
       }, 4000);
     });
 }
@@ -2924,6 +3178,23 @@ function gameNeedsProxy(game) {
   return false;
 }
 
+/** True when Axiom itself is inside Google Apps Script / Sites / nested iframe that blocks real pointer-lock. */
+function isRestrictedEmbed() {
+  try {
+    const h = String(location.hostname || '') + ' ' + String(location.href || '');
+    if (/script\.google|googleusercontent\.com|sites\.google|google\.com\/macros/i.test(h)) return true;
+  } catch (_) {}
+  try {
+    if (window !== window.top) {
+      // Nested iframe (SVG wrapper, school portal, etc.) — pointer-lock often blocked
+      return true;
+    }
+  } catch (_) {
+    return true;
+  }
+  return false;
+}
+
 function openGame(game) {
   if (!game) return;
   const url = String(game.resolvedUrl || '').trim();
@@ -2936,14 +3207,22 @@ function openGame(game) {
   try { addToRecent(game); } catch (_) {}
   try { trackGameOpen(game); } catch (_) {}
 
-  // about:blank stealth: still use HTML blob so it RENDERS, not source code
-  if (settings.openAboutBlank) {
+  // Google Script / SVG embeds / nested iframes block native pointer-lock.
+  // Prefer about:blank (real lock) when user enabled it OR we're in a restricted host.
+  // Soft-lock is still injected into the game HTML as a fallback either way.
+  const useAboutBlank = !!(settings.openAboutBlank || isRestrictedEmbed());
+  if (useAboutBlank) {
     fetchGameHtml(url)
       .then((html) => {
-        openInAboutBlankWindow(game.name, html, true);
+        const win = openInAboutBlankWindow(game.name, html, true);
+        if (!win && isRestrictedEmbed()) {
+          // Popup blocked — fall through to modal; soft-lock still works in-game
+          openInModal(game.name, url, game);
+        }
       })
       .catch(() => {
-        openInAboutBlankWindow(game.name, url, false);
+        const win = openInAboutBlankWindow(game.name, url, false);
+        if (!win) openInModal(game.name, url, game);
       });
     return;
   }
@@ -3008,11 +3287,16 @@ function openInModal(name, url, game) {
       console.warn('[Axiom] HTML fetch failed', err);
       hideProxyLoadScreen();
       // Direct iframe only — no proxy for Axiom / GN / Noah
+      gameFrame.addEventListener('load', focusGameFrame, { once: true });
       gameFrame.src = target;
+      setTimeout(focusGameFrame, 200);
       if (!noProxy) {
         setTimeout(() => {
           if (!gameModal.classList.contains('open')) return;
-          try { gameFrame.src = buildProxySrc(target); } catch (_) {}
+          try {
+            gameFrame.addEventListener('load', focusGameFrame, { once: true });
+            gameFrame.src = buildProxySrc(target);
+          } catch (_) {}
         }, 5000);
       }
     });
