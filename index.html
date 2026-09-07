@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1704,6 +1705,7 @@ const externalSources = [
 
 /* ========== FULL GAME LIST ========== */
 const customGames = [
+ { name:"Eaglercraft 26.2   ", author:"Axiom", resolvedCover:"https://cdn.jsdelivr.net/gh/daknux/covers@main/41.png", resolvedUrl:"https://eaglercraft-26-2-client.u2471966200.workers.dev/?=v0.6", needsProxy: true, source: "axiom" },
  { name:"Doom", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/1200.webp", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom.html" },
  { name:"Doom 2", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/ss_05f81f237a6370c3c797af951b42291dc747d199.1920x1080.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom2.html" },
  { name:"Doom 3", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom3box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom3.html" },
@@ -3391,6 +3393,8 @@ function openProxiedInModal(name, url) {
 
 function gameNeedsProxy(game) {
   if (!game) return false;
+  // Explicit flag on built-in / catalog entries (e.g. Eaglercraft on workers.dev)
+  if (game.needsProxy === true) return true;
   const src = (game.source || 'axiom').toLowerCase();
   // Sources served straight from a CDN load directly (proxying a CDN breaks
   // Ruffle/WASM game files), everything hosted on a real site goes through
