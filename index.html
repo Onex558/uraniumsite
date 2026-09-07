@@ -431,9 +431,6 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
 .src-badge.src-noah{ color:#a78bfa; }
 .src-badge.src-gnmath{ color:#7dd3fc; }
 .src-badge.src-truffled{ color:#fbbf24; }
-.src-badge.src-duckmath{ color:#86efac; }
-.src-badge.src-kh0{ color:#f472b6; }
-.src-badge.src-hfmanor{ color:#60a5fa; }
 .play-overlay{
   position:absolute; inset:0; z-index:3;
   display:flex; align-items:center; justify-content:center;
@@ -1087,9 +1084,6 @@ body.has-wallpaper::before{ opacity:0.5; }
           <button type="button" data-source="gnmath">GN Math</button>
           <button type="button" data-source="noah">Noah's Hub</button>
           <button type="button" data-source="truffled">Truffled</button>
-          <button type="button" data-source="duckmath">Duck Math</button>
-          <button type="button" data-source="kh0">3kh0 Lite</button>
-          <button type="button" data-source="hfmanor">HF Manor</button>
         </div>
       </div>
     </div>
@@ -1982,9 +1976,6 @@ function createGameCard(game, i) {
   const srcLabel = src === 'gnmath' ? 'GN Math'
     : src === 'noah' ? "Noah's"
     : src === 'truffled' ? 'Truffled'
-    : src === 'duckmath' ? 'Duck Math'
-    : src === 'kh0' ? '3kh0'
-    : src === 'hfmanor' ? 'HF Manor'
     : 'Axiom';
   const fav = isFavorite(game);
   const favClass = fav ? 'favorited' : '';
@@ -2305,164 +2296,6 @@ async function fetchTruffledSource() {
 }
 
 
-/* ========== DUCK MATH (duckmath.org) ==========
- * Duck Math is a React SPA: its game catalog is compiled straight into the
- * JS bundle instead of a JSON file. duckmath.org serves everything with
- * Access-Control-Allow-Origin: *, so we can fetch the bundle and pull the
- * game objects out of it. Shape inside the bundle:
- *   {link:"https://...",created_at:"...",id:123,title:"game-name",icon:"https://..."}
- */
-const DUCKMATH_ORIGIN = 'https://duckmath.org';
-const DUCKMATH_BUNDLE_RE = /\/assets\/index-[A-Za-z0-9_-]+\.js/g;
-const DUCKMATH_GAME_RE =
-  /\{link:"(https?:[^"]+)",created_at:"[^"]*",id:(\d+),title:"([^"]*)",icon:"([^"]*)"/g;
-
-function prettyDuckName(raw) {
-  return String(raw || '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, c => c.toUpperCase());
-}
-
-async function fetchDuckMathSource() {
-  // 1) find the current hashed bundle from the homepage
-  let bundles = [];
-  try {
-    const res = await fetch(DUCKMATH_ORIGIN + '/?t=' + Date.now(), { mode: 'cors', credentials: 'omit' });
-    if (res.ok) {
-      const html = await res.text();
-      bundles = Array.from(new Set(html.match(DUCKMATH_BUNDLE_RE) || []));
-    }
-  } catch (err) {
-    console.warn('[duckmath] homepage fetch failed', err && err.message);
-  }
-  if (!bundles.length) {
-    console.warn('[duckmath] no bundle found');
-    return [];
-  }
-
-  // 2) pull the games out of the bundle
-  let js = '';
-  for (const path of bundles) {
-    try {
-      const r = await fetch(DUCKMATH_ORIGIN + path, { mode: 'cors', credentials: 'omit' });
-      if (!r.ok) continue;
-      const text = await r.text();
-      if (DUCKMATH_GAME_RE.test(text)) { DUCKMATH_GAME_RE.lastIndex = 0; js = text; break; }
-      DUCKMATH_GAME_RE.lastIndex = 0;
-    } catch (err) {
-      console.warn('[duckmath] bundle fetch failed', path, err && err.message);
-    }
-  }
-  if (!js) return [];
-
-  const out = [];
-  const seen = new Set();
-  let m;
-  DUCKMATH_GAME_RE.lastIndex = 0;
-  while ((m = DUCKMATH_GAME_RE.exec(js)) !== null) {
-    const url = m[1];
-    const name = prettyDuckName(m[3]);
-    const cover = m[4];
-    if (!url || !name) continue;
-    const key = name.toLowerCase() + '|' + url;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({
-      name,
-      author: 'Duck Math',
-      resolvedCover: cover || '',
-      resolvedUrl: url,
-      source: 'duckmath',
-      special: [],
-      directFrame: false
-    });
-  }
-  console.log('[duckmath] loaded', out.length, 'games');
-  return out;
-}
-
-
-/* ========== 3KH0 LITE (lite.3kh0.net) ==========
- * Catalog lives in the public repo as config/games.json (CORS-open on both
- * raw.githubusercontent.com and jsDelivr). Links/images are RELATIVE to the
- * live site, so we prefix them with the site origin.
- */
-const KH0_ORIGIN = 'https://lite.3kh0.net';
-const KH0_JSON_URLS = [
-  'https://cdn.jsdelivr.net/gh/3kh0/3kh0-lite@main/config/games.json',
-  'https://raw.githubusercontent.com/3kh0/3kh0-lite/main/config/games.json'
-];
-
-/* ========== HF MANOR (Unblocked-Games-CDN) ==========
- * Flat array of { name, game_url, game_image_icon }. URLs are absolute and
- * point at hfmanor.com, which sends x-frame-options: ALLOWALL.
- */
-const HFM_JSON_URLS = [
-  'https://cdn.jsdelivr.net/gh/swarmintelli/Unblocked-Games-CDN@main/games.json',
-  'https://raw.githubusercontent.com/swarmintelli/Unblocked-Games-CDN/main/games.json'
-];
-
-async function fetchFirstJson(urls, label) {
-  for (const url of urls) {
-    try {
-      const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), {
-        mode: 'cors', credentials: 'omit'
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      console.log('[' + label + '] loaded from', url);
-      return data;
-    } catch (err) {
-      console.warn('[' + label + '] failed', url, err && err.message);
-    }
-  }
-  return null;
-}
-
-async function fetch3kh0Source() {
-  const data = await fetchFirstJson(KH0_JSON_URLS, '3kh0');
-  const list = Array.isArray(data) ? data : (data && data.games) || [];
-  if (!Array.isArray(list)) return [];
-  const abs = (path) => {
-    const v = String(path || '').trim();
-    if (!v) return '';
-    if (/^https?:\/\//i.test(v)) return v;
-    return KH0_ORIGIN + (v.startsWith('/') ? v : '/' + v);
-  };
-  return list
-    .filter(g => g && (g.title || g.name) && (g.link || g.url))
-    .map(g => ({
-      name: String(g.title || g.name).trim(),
-      author: '3kh0',
-      resolvedCover: abs(g.imgSrc || g.image || g.cover),
-      resolvedUrl: abs(g.link || g.url),
-      source: 'kh0',
-      special: [],
-      directFrame: false
-    }))
-    .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
-}
-
-async function fetchHfManorSource() {
-  const data = await fetchFirstJson(HFM_JSON_URLS, 'hfmanor');
-  const list = Array.isArray(data) ? data : (data && data.games) || [];
-  if (!Array.isArray(list)) return [];
-  return list
-    .filter(g => g && g.name && (g.game_url || g.url))
-    .map(g => ({
-      name: String(g.name).trim(),
-      author: 'HF Manor',
-      resolvedCover: String(g.game_image_icon || g.image || '').trim(),
-      resolvedUrl: String(g.game_url || g.url).trim(),
-      source: 'hfmanor',
-      special: [],
-      directFrame: false
-    }))
-    .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
-}
-
 async function loadAllSources() {
   if (statusLine) statusLine.textContent = 'Loading games...';
 
@@ -2508,21 +2341,15 @@ async function loadAllSources() {
       return lists.flat();
     }),
     safe("Noah's Hub", fetchNoahSource),
-    safe('Truffled', fetchTruffledSource),
-    safe('Duck Math', fetchDuckMathSource),
-    safe('3kh0', fetch3kh0Source),
-    safe('HF Manor', fetchHfManorSource)
+    safe('Truffled', fetchTruffledSource)
   ]);
 
-  const [gnGames, noahGames, truffledGames, duckGames, kh0Games, hfmGames] = results;
+  const [gnGames, noahGames, truffledGames] = results;
 
   const externalGames = [
     ...gnGames,
     ...noahGames,
-    ...truffledGames,
-    ...duckGames,
-    ...kh0Games,
-    ...hfmGames
+    ...truffledGames
   ].filter(g =>
     g &&
     g.name &&
@@ -2555,9 +2382,6 @@ async function loadAllSources() {
     gnmath: gnGames.length,
     noah: noahGames.length,
     truffled: truffledGames.length,
-    duckmath: duckGames.length,
-    kh0: kh0Games.length,
-    hfmanor: hfmGames.length,
     total: allGames.length
   });
 }
@@ -3187,10 +3011,10 @@ function openProxiedInModal(name, url) {
 function gameNeedsProxy(game) {
   if (!game) return false;
   const src = (game.source || 'axiom').toLowerCase();
-  // Axiom, GN Math, Noah's Hub — NEVER use the proxy
+  // Axiom, GN Math, and Noah's Hub load directly.
   if (src === 'axiom' || src === 'gnmath' || src === 'noah') return false;
-  // All other sources (Truffled, Duck Math, 3kh0, HF Manor, etc.) use the proxy
-  return true;
+  // Truffled uses the proxy.
+  return src === 'truffled';
 }
 
 function openGame(game) {
@@ -3267,9 +3091,7 @@ function openInModal(name, url, game) {
 
   showProxyLoadScreen(name);
 
-  // Sources whose hosts allow framing (Duck Math etc.): load the real URL in
-  // the iframe so relative assets / Unity loaders keep working. If the frame
-  // never fires load, fall back to the proxy.
+  // Sources that can load directly use the real URL in the iframe.
   if (game && game.directFrame) {
     let frameLoaded = false;
     gameFrame.removeAttribute('srcdoc');
