@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2375,9 +2376,7 @@ async function fetchDuckMathSource() {
       resolvedUrl: url,
       source: 'duckmath',
       special: [],
-      // These hosts allow framing, so play them straight in the iframe and
-      // only fall back to the proxy if the frame never loads.
-      directFrame: true
+      directFrame: false
     });
   }
   console.log('[duckmath] loaded', out.length, 'games');
@@ -2441,7 +2440,7 @@ async function fetch3kh0Source() {
       resolvedUrl: abs(g.link || g.url),
       source: 'kh0',
       special: [],
-      directFrame: true
+      directFrame: false
     }))
     .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
 }
@@ -2459,7 +2458,7 @@ async function fetchHfManorSource() {
       resolvedUrl: String(g.game_url || g.url).trim(),
       source: 'hfmanor',
       special: [],
-      directFrame: true
+      directFrame: false
     }))
     .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
 }
@@ -3175,23 +3174,14 @@ function openProxiedInModal(name, url) {
   prepareGameModal(name);
   showProxyLoadScreen(name);
 
-  // Prefer fetch→HTML blob (plays for real). Proxy is only a fallback.
-  fetchGameHtml(real)
-    .then((html) => {
-      hideProxyLoadScreen();
-      loadHtmlIntoFrame(html);
-    })
-    .catch((err) => {
-      console.warn('[Axiom] fetch failed, trying proxy', err);
-      gameFrame.src = buildProxySrc(real);
-      setTimeout(() => {
-        hideProxyLoadScreen();
-        // If still useless, last try: open in a new tab
-        setTimeout(() => {
-          if (!gameModal.classList.contains('open')) return;
-        }, 2000);
-      }, 4000);
-    });
+  // Always load through the proxy for non-Axiom / non-GN / non-Noah sources
+  gameFrame.removeAttribute('srcdoc');
+  gameFrame.onload = function () {
+    hideProxyLoadScreen();
+  };
+  gameFrame.src = buildProxySrc(real);
+  // Safety hide if onload never fires
+  setTimeout(hideProxyLoadScreen, 10000);
 }
 
 function gameNeedsProxy(game) {
@@ -3199,17 +3189,8 @@ function gameNeedsProxy(game) {
   const src = (game.source || 'axiom').toLowerCase();
   // Axiom, GN Math, Noah's Hub — NEVER use the proxy
   if (src === 'axiom' || src === 'gnmath' || src === 'noah') return false;
-  // Sources verified to allow framing play directly (with a proxy fallback
-  // inside openInModal if the iframe never loads).
-  if (game.directFrame) return false;
-  if (game.frameType === 'proxy' || game.frameType === 'unity' || game.frameType === 'unityframe') return true;
-  if (src === 'truffled') return true;
-  if (Array.isArray(game.special) && game.special.some(s => /proxy|unity|tab/i.test(String(s)))) return true;
-  try {
-    const host = new URL(String(game.resolvedUrl || '')).hostname.toLowerCase();
-    if (/truffled\.lol|shellshock\.io|krunker\.io|bloxd\.io|voxiom\.io|hfmanor\.com/i.test(host)) return true;
-  } catch (_) {}
-  return false;
+  // All other sources (Truffled, Duck Math, 3kh0, HF Manor, etc.) use the proxy
+  return true;
 }
 
 function openGame(game) {
