@@ -1031,7 +1031,7 @@ body.has-wallpaper::before{ opacity:0.5; }
   <button type="button" class="rail-btn rail-group-btn" data-group="mediaGroup" aria-expanded="false">Media<span class="chevron">&#10095;</span></button>
   <div class="rail-group" id="mediaGroup">
     <button type="button" class="rail-btn" id="railMusicBtn" onclick="openProxy('https://soundcloud.com/', true)">Music</button>
-    <button type="button" class="rail-btn" id="railMoviesBtn" onclick="openProxy('https://cinera.cc/', true)">Movies</button>
+    <button type="button" class="rail-btn" id="railMoviesBtn" onclick="openProxy('https://www.justwatch.com/us/movies', true)">Movies</button>
   </div>
 
   <button type="button" class="rail-btn rail-group-btn" data-group="toolsGroup" aria-expanded="false">Tools<span class="chevron">&#10095;</span></button>
@@ -1103,6 +1103,8 @@ body.has-wallpaper::before{ opacity:0.5; }
           <button type="button" data-source="nebula">Nebula CDN</button>
           <button type="button" data-source="classplay">ClassPlay</button>
           <button type="button" data-source="ubg98">UBG98</button>
+          <button type="button" data-source="cisco">Cisco</button>
+          <button type="button" data-source="ubg">Ubg</button>
         </div>
       </div>
     </div>
@@ -2062,7 +2064,9 @@ function createGameCard(game, i) {
     : src === 'kh0' ? '3kh0 Lite'
     : src === 'nebula' ? 'Nebula CDN'
     : src === 'classplay' ? 'ClassPlay'
-    : src === 'ubg98' ? 'UBG98'
+     : src === 'ubg98' ? 'UBG98'
+     : src === 'cisco' ? 'Cisco'
+     : src === 'ubg' ? 'Ubg'
     : 'Axiom';
   const fav = isFavorite(game);
   const favClass = fav ? 'favorited' : '';
@@ -2431,17 +2435,58 @@ const TRUFFLED_EPSTEINS_COVER = 'data:image/webp;base64,UklGRg4ZAABXRUJQVlA4IAIZ
 
 const REMOVED_GAME_SOURCES = new Set(['cherri', 'swarm']);
 const EPSTEINS_GAME_RE = /five\s*nights.*epstein/i;
+const BROKEN_GAME_URLS_KEY = 'axiomBrokenGameUrls';
+let brokenGameUrls = new Set();
+try {
+  const savedBroken = JSON.parse(localStorage.getItem(BROKEN_GAME_URLS_KEY) || '[]');
+  if (Array.isArray(savedBroken)) brokenGameUrls = new Set(savedBroken.map(String));
+} catch (_) {}
 function isEpsteinsGame(game) {
   return EPSTEINS_GAME_RE.test(String(game && game.name || ''));
 }
 function isAllowedGame(game) {
   if (!game || !game.name || !game.resolvedUrl) return false;
+  normalizeGameSource(game);
   const source = String(game.source || 'axiom').toLowerCase();
   if (REMOVED_GAME_SOURCES.has(source)) return false;
+  if (brokenGameUrls.has(String(game.resolvedUrl))) return false;
   // Keep the working Truffled copy only. Remove the broken duplicates from
   // Nebula CDN, GN Math, and Noah's Tutoring Hub.
   if (isEpsteinsGame(game) && ['nebula', 'gnmath', 'noah'].includes(source)) return false;
   return /^https?:\/\//i.test(String(game.resolvedUrl));
+}
+
+/* Keep names stable when an older cached/exported library still contains the
+   previous source ids.  This also makes the source rename apply everywhere,
+   not only to the dropdown labels. */
+function normalizeGameSource(game) {
+  if (!game || typeof game !== 'object') return game;
+  const source = String(game.source || 'axiom').toLowerCase();
+  if (source === 'petezah') {
+    game.source = 'cisco';
+    game.author = 'Cisco';
+  } else if (source === 'interstellar') {
+    game.source = 'ubg';
+    game.author = 'Ubg';
+  }
+  return game;
+}
+
+/* A failed request must not remain in the playable library.  The removal is
+   persisted so a dead catalog entry does not come back on the next reload. */
+function removeBrokenGame(game, reason) {
+  if (!game) return;
+  const key = String(game.name || '').toLowerCase() + '|' + String(game.resolvedUrl || '');
+  allGames = (allGames || []).filter(g =>
+    String(g.name || '').toLowerCase() + '|' + String(g.resolvedUrl || '') !== key
+  );
+  brokenGameUrls.add(String(game.resolvedUrl || ''));
+  try { localStorage.setItem(BROKEN_GAME_URLS_KEY, JSON.stringify([...brokenGameUrls])); } catch (_) {}
+  try { localStorage.setItem('axiomGamesCache', JSON.stringify(allGames)); } catch (_) {}
+  if (typeof handleSearch === 'function') handleSearch();
+  const detail = reason ? ' (' + String(reason).replace(/^Error:\s*/i, '') + ')' : '';
+  showToast((game.name || 'Game') + ' was removed because it failed to load' + detail);
+  console.warn('[Axiom] Removed broken game:', game.name, game.resolvedUrl, reason || '');
 }
 
 /* Tries each mirror in order and returns the first JSON that loads.
@@ -2534,8 +2579,73 @@ async function fetchUbg98Source() {
     .filter(g => g.name && /^https?:\/\//i.test(g.resolvedUrl));
 }
 
+/* Cisco - games hosted on the former PeteZah catalog, opened through the Axiom proxy */
+const CISCO_ORIGIN = 'https://petezahgames.com';
+// The catalog host blocks cross-origin fetches, so read its public CDN mirror.
+const CISCO_JSON = 'https://cdn.jsdelivr.net/gh/PeteZah-Games/PeteZahGames@main/public/storage/data/collection.json';
+async function fetchCiscoSource() {
+  const data = await fetchJsonSimple(CISCO_JSON);
+  const list = Array.isArray(data) ? data : (data && data.games) || [];
+  return list
+    .filter(g => g && g.label && g.url)
+    .map(g => {
+      let url = String(g.url).trim();
+      // Unwrap the site's /iframe.html?url=/storage/... wrapper to the real game file
+      const m = url.match(/^\/iframe\.html\?url=([^&]+)/i);
+      if (m) url = decodeURIComponent(m[1]);
+      if (!/^https?:\/\//i.test(url)) {
+        url = CISCO_ORIGIN + (url.startsWith('/') ? url : '/' + url);
+      }
+      if (/docs\.google\.com|forms\.gle/i.test(url)) return null; // request form, not a game
+      let cover = String(g.imageUrl || '').trim();
+      if (cover && !/^https?:\/\//i.test(cover)) {
+        cover = CISCO_ORIGIN + (cover.startsWith('/') ? cover : '/' + cover);
+      }
+      return {
+        name: String(g.label).trim(),
+        author: 'Cisco',
+        resolvedCover: cover,
+        resolvedUrl: url,
+        source: 'cisco',
+        special: [],
+        frameType: 'iframe'
+      };
+    })
+    .filter(g => g && g.name && /^https?:\/\//i.test(g.resolvedUrl));
+}
+
+/* Ubg - popular web games, opened through the Axiom proxy */
+const UBG_JSON = 'https://cdn.jsdelivr.net/gh/UseInterstellar/Interstellar-Assets@main/json/games.json';
+const UBG_ICONS = 'https://cdn.jsdelivr.net/gh/UseInterstellar/Interstellar-Assets@main';
+async function fetchUbgSource() {
+  const data = await fetchJsonSimple(UBG_JSON);
+  const list = Array.isArray(data) ? data : (data && data.games) || [];
+  return list
+    .filter(g => g && g.name && g.link && !g.custom)
+    .map(g => {
+      const url = String(g.link).trim();
+      if (!/^https?:\/\//i.test(url)) return null; // skip site-local entries
+      const name = String(g.name).replace(/^!\s*/, '').trim();
+      if (/request a game|faq|\/docs/i.test(name)) return null;
+      let cover = String(g.image || '').trim();
+      if (cover && !/^https?:\/\//i.test(cover)) {
+        cover = UBG_ICONS + (cover.startsWith('/') ? cover : '/' + cover);
+      }
+      return {
+        name,
+        author: 'Ubg',
+        resolvedCover: cover,
+        resolvedUrl: url,
+        source: 'ubg',
+        special: Array.isArray(g.categories) ? g.categories.map(String) : [],
+        frameType: 'iframe'
+      };
+    })
+    .filter(g => g && g.name && g.resolvedUrl);
+}
+
 async function loadAllSources() {
-  if (statusLine) statusLine.textContent = 'Loading games...';
+  if (statusLine) statusLine.textContent = 'Loading game catalogs — please wait...';
 
   const axiomGames = (Array.isArray(customGames) ? customGames : [])
     .filter(g => g && g.name && g.resolvedUrl)
@@ -2546,6 +2656,7 @@ async function loadAllSources() {
       resolvedUrl: String(g.resolvedUrl || '').trim(),
       resolvedCover: String(g.resolvedCover || '').trim()
     }))
+    .map(normalizeGameSource)
     .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
 
   // Show Axiom's built-in games immediately so the library is never empty
@@ -2583,10 +2694,12 @@ async function loadAllSources() {
     safe('3kh0 Lite', fetch3kh0Source),
     safe('Nebula CDN', fetchNebulaSource),
     safe('ClassPlay', () => fetchCherriCatalog('/assets/json/classplay.json', 'classplay', 'ClassPlay')),
-    safe('UBG98', fetchUbg98Source)
+    safe('UBG98', fetchUbg98Source),
+    safe('Cisco', fetchCiscoSource),
+    safe('Ubg', fetchUbgSource)
   ]);
 
-  const [gnGames, noahGames, truffledGames, kh0Games, nebulaGames, classplayGames, ubg98Games] = results;
+  const [gnGames, noahGames, truffledGames, kh0Games, nebulaGames, classplayGames, ubg98Games, ciscoGames, ubgGames] = results;
 
   const externalGames = [
     ...gnGames,
@@ -2595,10 +2708,12 @@ async function loadAllSources() {
     ...kh0Games,
     ...nebulaGames,
     ...classplayGames,
-    ...ubg98Games
+    ...ubg98Games,
+    ...ciscoGames,
+    ...ubgGames
   ].filter(isAllowedGame);
 
-  allGames = [...axiomGames, ...externalGames].filter(isAllowedGame);
+  allGames = [...axiomGames, ...externalGames].map(normalizeGameSource).filter(isAllowedGame);
 
   // Remove only exact duplicate name+URL entries. Games from different
   // sources are otherwise preserved.
@@ -2623,6 +2738,8 @@ async function loadAllSources() {
     gnmath: gnGames.length,
     noah: noahGames.length,
     truffled: truffledGames.length,
+    cisco: ciscoGames.length,
+    ubg: ubgGames.length,
     total: allGames.length
   });
 }
@@ -3122,8 +3239,12 @@ function showProxyLoadScreen(gameName) {
     }, ms));
   });
 
-  // Safety: never leave the screen up forever
-  _plsHideTimer = setTimeout(hideProxyLoadScreen, 14000);
+  // Games can include large WebAssembly assets. Give them time to start,
+  // while the open-game watchdog below still removes a genuinely dead entry.
+  _plsTimers.push(setTimeout(() => {
+    if (status) status.textContent = 'Still loading — please wait...';
+  }, 12000));
+  _plsHideTimer = setTimeout(hideProxyLoadScreen, 30000);
 }
 
 function hideProxyLoadScreen() {
@@ -3248,12 +3369,24 @@ function openProxiedInModal(name, url) {
 
   // Always load through the proxy for non-Axiom / non-GN / non-Noah sources
   gameFrame.removeAttribute('srcdoc');
+  let frameLoaded = false;
+  gameFrame.onerror = function () {
+    removeBrokenGame({ name, resolvedUrl: real }, 'network error');
+    showModalError(name || 'Game', 'The game server could not be reached.');
+    hideProxyLoadScreen();
+  };
   gameFrame.onload = function () {
+    frameLoaded = true;
     hideProxyLoadScreen();
   };
   gameFrame.src = buildProxySrc(real);
-  // Safety hide if onload never fires
-  setTimeout(hideProxyLoadScreen, 10000);
+  // Be patient with large games, but do not leave a dead entry in the library.
+  setTimeout(() => {
+    if (frameLoaded || !gameModal.classList.contains('open')) return;
+    removeBrokenGame({ name, resolvedUrl: real }, 'timed out after 30 seconds');
+    showModalError(name || 'Game', 'The game took too long to load and was removed from the library.');
+    hideProxyLoadScreen();
+  }, 30000);
 }
 
 function gameNeedsProxy(game) {
@@ -3264,13 +3397,14 @@ function gameNeedsProxy(game) {
   // the Axiom proxy so it is never blocked.
   const direct = ['axiom', 'gnmath', 'noah', 'nebula', 'classplay'];
   if (direct.indexOf(src) !== -1) return false;
-  return ['truffled', 'kh0', 'ubg98'].indexOf(src) !== -1;
+  return ['truffled', 'kh0', 'ubg98', 'cisco', 'ubg'].indexOf(src) !== -1;
 }
 
 function openGame(game) {
   if (!game) return;
   const url = String(game.resolvedUrl || '').trim();
   if (!/^https?:\/\//i.test(url)) {
+   removeBrokenGame(game, 'invalid URL');
     showToast((game.name || 'Game') + ' has an invalid game URL');
     console.warn('[Axiom] Invalid game entry:', game);
     return;
@@ -3366,13 +3500,19 @@ function openInModal(name, url, game) {
       console.warn('[Axiom] HTML fetch failed', err);
       hideProxyLoadScreen();
       // Direct iframe only — no proxy for Axiom / GN / Noah
+       let frameLoaded = false;
+       gameFrame.onerror = () => {
+         if (frameLoaded) return;
+         removeBrokenGame(game, 'network error');
+         showModalError(name || 'Game', 'The game server could not be reached.');
+       };
+       gameFrame.onload = () => { frameLoaded = true; hideProxyLoadScreen(); };
       gameFrame.src = target;
-      if (!noProxy) {
-        setTimeout(() => {
-          if (!gameModal.classList.contains('open')) return;
-          try { gameFrame.src = buildProxySrc(target); } catch (_) {}
-        }, 5000);
-      }
+       setTimeout(() => {
+         if (frameLoaded || !gameModal.classList.contains('open')) return;
+         removeBrokenGame(game, 'timed out after 30 seconds');
+         showModalError(name || 'Game', 'The game took too long to load and was removed from the library.');
+       }, 30000);
     });
 }
 
@@ -3552,14 +3692,14 @@ function importDataFromObject(obj) {
 applySettings();
  }
  if (Array.isArray(obj.gamesCache) && obj.gamesCache.length) {
- allGames = obj.gamesCache.map(g => ({
+  allGames = obj.gamesCache.map(g => normalizeGameSource({
  name: g.name,
  author: g.author || 'Unknown',
  resolvedCover: g.resolvedCover || '',
  resolvedUrl: g.resolvedUrl || '',
  source: g.source || 'axiom',
  special: Array.isArray(g.special) ? g.special : []
- })).filter(g => g.name && g.resolvedUrl);
+  })).filter(g => g.name && g.resolvedUrl && isAllowedGame(g));
  try {
  localStorage.setItem('axiomGamesCache', JSON.stringify(allGames));
  } catch (_) {}
