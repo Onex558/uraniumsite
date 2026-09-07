@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +12,7 @@
   </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Permissions-Policy" content="pointer-lock=*, fullscreen=*, gamepad=*, autoplay=*, clipboard-read=*, clipboard-write=*">
 <title>Axiom</title>
 <link id="favicon" rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">
 <style>
@@ -138,24 +140,6 @@ body::after{
   box-shadow: 0 0 16px rgba(var(--primary-rgb),0.2);
 }
 .rail-btn .tip{ display: none !important; }
-.rail-ico{ width:15px; height:15px; margin-right:8px; flex-shrink:0; opacity:.9; }
-
-/* ===== SIDEBAR POSITION ===== */
-body.rail-pos-right #rail{ left:auto; right:14px; }
-body.rail-pos-right #railCollapseBtn, body.rail-pos-right #railExpandBtn{ left:auto; right:14px; }
-body.rail-pos-bottom #rail{
-  left:50%; right:auto; top:auto; bottom:14px;
-  transform:translateX(-50%);
-  flex-direction:row; flex-wrap:wrap; justify-content:center;
-  min-width:0; width:max-content; max-width:94vw; max-height:none; overflow:visible;
-}
-body.rail-pos-bottom .rail-btn{ width:auto; min-height:36px; padding:8px 12px; }
-body.rail-pos-bottom .rail-group{ display:none; }
-body.rail-pos-bottom .rail-group.open{ display:flex; flex-wrap:wrap; gap:4px; }
-body.rail-pos-bottom .rail-group .rail-btn{ padding-left:12px; }
-body.rail-pos-bottom .rail-group .rail-btn::before{ display:none; }
-body.rail-pos-bottom #railCollapseBtn{ display:none !important; }
-body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
 
 .view{ display:none; position:relative; z-index:1; min-height:100vh; }
 .view.active{ display:flex; }
@@ -192,26 +176,6 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
   margin-top: 12px;
   letter-spacing: 0.02em;
 }
-.title-discord-btn{
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.05);
-  color: var(--text);
-  font-size: 0.82em;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all .2s ease;
-}
-.title-discord-btn:hover{ background: rgba(88,101,242,0.14); border-color: rgba(88,101,242,0.45); color: #c7cfff; transform: translateY(-1px); }
-.title-discord-ico{ width: 16px; height: 16px; flex-shrink: 0; }
 .proxy-search-wrap{
   width: min(480px, 90vw);
   margin-top: 40px;
@@ -472,34 +436,27 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
 #appsSearch::placeholder{ color:rgba(255,255,255,0.3); }
 #appsSearch:focus{ border-color:rgba(var(--primary-rgb),.55); box-shadow:0 0 0 3px rgba(var(--primary-rgb),.12); }
 .apps-grid{
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(126px,1fr)); gap:16px;
-  width:min(920px,100%); margin:0 auto;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:26px;
+  width:min(980px,100%); margin:0 auto;
 }
 .app-tile{
-  position:relative; border:1px solid var(--border); border-radius:16px;
-  background:var(--surface); cursor:pointer; overflow:hidden; padding:18px 10px 14px;
-  font-family:inherit;
-  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:12px;
-  transition:transform .16s ease, border-color .16s ease, background .16s ease, box-shadow .16s ease;
+  position:relative; aspect-ratio:1; border:1px solid rgba(255,255,255,0.07); border-radius:18px;
+  background:#141419; cursor:pointer; overflow:hidden; padding:0; font-family:inherit;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
 .app-tile:hover{
-  transform:translateY(-3px); border-color:rgba(var(--primary-rgb),.55);
-  background:var(--surface-2);
-  box-shadow:0 14px 30px rgba(0,0,0,.4);
-}
-.app-tile .app-icon-wrap{
-  width:52px; height:52px; border-radius:14px; background:#fff; flex:0 0 auto;
-  display:flex; align-items:center; justify-content:center; overflow:hidden;
-  box-shadow:0 8px 18px rgba(0,0,0,.3);
+  transform:translateY(-4px) scale(1.02); border-color:rgba(var(--primary-rgb),.6);
+  box-shadow:0 14px 34px rgba(0,0,0,.5), 0 0 0 1px rgba(var(--primary-rgb),.25);
 }
 .app-tile img{
-  width:68%; height:68%; object-fit:contain; pointer-events:none;
-  image-rendering:-webkit-optimize-contrast;
+  width:76%; height:76%; max-width:88px; max-height:88px; object-fit:contain; pointer-events:none;
+  border-radius:16px; image-rendering:-webkit-optimize-contrast;
 }
 .app-tile .app-name{
-  font-size:.78em; font-weight:650; color:var(--text); letter-spacing:.01em;
-  text-align:center; line-height:1.25; max-width:100%;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  position:absolute; left:0; right:0; bottom:0; padding:7px 4px; font-size:.72em; font-weight:700;
+  color:rgba(255,255,255,0.85); background:linear-gradient(transparent, rgba(0,0,0,.72));
+  letter-spacing:.02em;
 }
 #appsCloseBtn{
   position:fixed; left:16px; bottom:16px; z-index:151; width:42px; height:42px;
@@ -511,9 +468,7 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
 #appsCloseBtn span{ background:var(--primary); border-radius:3px; display:block; }
 #appsCloseBtn:hover{ background:rgba(var(--primary-rgb),.18); box-shadow:0 0 18px rgba(var(--primary-rgb),.35); }
 @media(max-width:700px){
-  .apps-grid{ grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:12px; }
-  .app-tile{ padding:14px 8px 12px; gap:10px; }
-  .app-tile .app-icon-wrap{ width:44px; height:44px; border-radius:12px; }
+  .apps-grid{ grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:14px; }
   .apps-title{ font-size:1.2em; }
 }
 
@@ -554,27 +509,24 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
 #clockDate{ opacity:0.7; font-size:0.92em; }
 
 
-#gameModal{
+#gameModal,#linksModal{
   display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95);
   z-index:9999; align-items:center; justify-content:center; flex-direction:column;
 }
-#frameStack{
-  display:block; position:relative; overflow:hidden;
-  width:94vw; height:86vh; max-width:1400px; max-height:900px;
+#gameFrame,#linksFrame{
+  display:block; width:94vw; height:86vh; max-width:1400px; max-height:900px;
   border:1px solid rgba(var(--primary-rgb),0.25); border-radius:14px; background:#000;
   min-width:280px; min-height:200px;
 }
-#gameModal.open #frameStack{
+#gameModal.open #gameFrame{
   display:block !important; visibility:visible !important; opacity:1 !important;
 }
-#gameModal:fullscreen{ background:#000; }
-#gameModal:fullscreen #frameStack{ width:100vw; height:100vh; max-width:none; max-height:none; border:none; border-radius:0; }
-/* Each proxy tab keeps its own iframe alive in the stack; only the active one shows.
-   This is what stops switching tabs from reloading the page underneath. */
-.proxy-frame{
-  position:absolute; inset:0; width:100%; height:100%; border:none; background:#000; display:none;
+/* Site custom cursor must not apply while a game is open (breaks lock / aim) */
+#gameModal.open, #gameModal.open *:not(#gameFrame) {
+  cursor: default !important;
 }
-.proxy-frame.active-frame{ display:block; }
+#gameModal:fullscreen{ background:#000; }
+#gameModal:fullscreen #gameFrame{ width:100vw; height:100vh; max-width:none; max-height:none; border:none; border-radius:0; }
 .modal-hover-zone{ position:absolute; top:0; left:0; right:0; height:6px; z-index:11; }
 .modal-controls{
   position:absolute; top:0; left:0; right:0;
@@ -727,9 +679,9 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
   padding:9px 14px; border:none; border-radius:10px; cursor:pointer;
 }
 .proxy-actions{ display:flex; gap:6px; }
-#gameModal.proxy-mode #frameStack{ height:calc(86vh - 74px); margin-top:130px; }
-#gameModal.proxy-mode:fullscreen #frameStack{ height:calc(100vh - 130px); margin-top:130px; }
-#gameModal.music-mode #frameStack{ width:100vw; height:100vh; max-width:none; max-height:none; margin-top:0; border:none; border-radius:0; background:#000; }
+#gameModal.proxy-mode #gameFrame{ height:calc(86vh - 74px); margin-top:130px; }
+#gameModal.proxy-mode:fullscreen #gameFrame{ height:calc(100vh - 130px); margin-top:130px; }
+#gameModal.music-mode #gameFrame{ width:100vw; height:100vh; max-width:none; max-height:none; margin-top:0; border:none; border-radius:0; background:#000; }
 
 /* Music mode: no address bar, no bookmarks, no tabs, no home screen - just the player */
 #gameModal.music-mode .proxy-bar,
@@ -818,7 +770,7 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
   background:linear-gradient(145deg,var(--primary),#5b3fd0);color:#fff;font-size:1.05em;font-weight:800;}
 .proxy-shortcut b{font-size:.9em;}
 .proxy-shortcut small{margin-top:3px;color:var(--muted);font-size:.7em;}
-#gameModal.proxy-home-active #frameStack{visibility:hidden;}
+#gameModal.proxy-home-active #gameFrame{visibility:hidden;}
 @media(max-width:700px){.proxy-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));}.proxy-home{padding:30px 14px 45px}.proxy-home h1{font-size:1.65em;}}
 
 
@@ -969,11 +921,8 @@ body.rail-collapsed #railExpandBtn{ display:flex; }
 #homeWallpaper.active{ display: block; }
 #homeWallpaper::after{
   content:""; position:absolute; inset:0;
-  background: rgba(0,0,0,0.16);
+  background: rgba(0,0,0,0.45);
 }
-/* keep the ambient darkening from crushing custom wallpapers */
-body.has-wallpaper::after{ opacity:0.12; }
-body.has-wallpaper::before{ opacity:0.5; }
 #viewHome > *{ position: relative; z-index: 2; }
 .locked-note{ font-size:0.78em; color:var(--muted); margin-top:6px; line-height:1.45; }
 @media(max-width:700px){
@@ -1010,7 +959,6 @@ body.has-wallpaper::before{ opacity:0.5; }
   <button type="button" class="rail-btn active" data-view="home" id="railHome">Home</button>
   <button type="button" class="rail-btn" data-view="games" id="railGames">Games</button>
   <button type="button" class="rail-btn" id="railProxyBtn" onclick="openProxy()">Browser</button>
-  <button type="button" class="rail-btn" id="railLinksBtn" onclick="window.open('https://sites.google.com/view/allabouturanium', '_blank', 'noopener,noreferrer')"><svg class="rail-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Links</button>
 
   <button type="button" class="rail-btn rail-group-btn" data-group="mediaGroup" aria-expanded="false">Media<span class="chevron">&#10095;</span></button>
   <div class="rail-group" id="mediaGroup">
@@ -1028,6 +976,7 @@ body.has-wallpaper::before{ opacity:0.5; }
   <button type="button" class="rail-btn rail-group-btn" data-group="accountGroup" aria-expanded="false">Account<span class="chevron">&#10095;</span></button>
   <div class="rail-group" id="accountGroup">
     <button type="button" class="rail-btn" id="railAccount">Account</button>
+    <button type="button" class="rail-btn" id="railDiscordBtn" onclick="window.open('https://discord.gg/9TqZVcfvh4','_blank','noopener,noreferrer')">Discord</button>
     <button type="button" class="rail-btn" id="openSettings">Settings</button>
   </div>
 </nav>
@@ -1053,10 +1002,6 @@ body.has-wallpaper::before{ opacity:0.5; }
     Welcome to<br>
     <span class="welcome-brand" id="axiomLogoText">Axiom</span>
   </h1>
-  <button type="button" class="title-discord-btn" id="titleDiscordBtn" onclick="openProxy('https://discord.gg/b4p2bb7KGq')">
-    <svg class="title-discord-ico" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4054-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5798.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0786-.0099c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0789.0095c.1202.0991.246.1981.3726.2925a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0406.1057c.3609.6989.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0551c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg>
-    Discord
-  </button>
   <div class="proxy-search-wrap">
     <input type="text" id="homeProxyInput" placeholder="Type a URL or search the web..." autocomplete="off" spellcheck="false">
   </div>
@@ -1185,9 +1130,7 @@ body.has-wallpaper::before{ opacity:0.5; }
    </div>
   </div>
  </div>
- <div id="frameStack">
-  <iframe id="gameFrame" class="proxy-frame active-frame" allowfullscreen="true" allow="fullscreen *; autoplay *; gamepad *; pointer-lock *; clipboard-read *; clipboard-write *; accelerometer *; gyroscope *; magnetometer *; camera *; microphone *; payment *; midi *; encrypted-media *; picture-in-picture *; display-capture *" referrerpolicy="no-referrer" loading="eager" style="background:#000;"></iframe>
- </div>
+ <iframe id="gameFrame" tabindex="0" allowfullscreen="true" allow="pointer-lock; fullscreen; gamepad; autoplay; clipboard-read; clipboard-write; accelerometer; gyroscope; magnetometer; camera; microphone; payment; midi; encrypted-media; picture-in-picture; display-capture" referrerpolicy="no-referrer" loading="eager" style="background:#000; outline:none; border:0;"></iframe>
  <div id="proxyLoadScreen" aria-hidden="true">
   <div class="pls-mark">A</div>
   <div class="pls-title">Axiom</div>
@@ -1211,6 +1154,15 @@ body.has-wallpaper::before{ opacity:0.5; }
  <span class="music-pill-dot"></span>
  <span>Music playing - tap to reopen</span>
 </div>
+
+<!-- LINKS MODAL -->
+<div id="linksModal">
+ <div class="modal-controls visible" style="position:relative; margin-bottom: 10px;">
+ <button class="modal-btn" id="closeLinksBtn">Close X</button>
+ </div>
+ <iframe id="linksFrame" src="about:blank" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-modals"></iframe>
+</div>
+
 
 <div class="overlay" id="settingsOverlay"></div>
 <aside class="settings-panel" id="settingsPanel">
@@ -1237,17 +1189,6 @@ body.has-wallpaper::before{ opacity:0.5; }
  <p class="locked-note">
  When on, pressing Close asks "are you sure?". Opening games never asks.
  </p>
- </div>
-
- <!-- SIDEBAR POSITION -->
- <div class="settings-group">
- <label>Sidebar Position</label>
- <select id="setRailPosition">
- <option value="left">Left</option>
- <option value="right">Right</option>
- <option value="bottom">Bottom</option>
- </select>
- <p class="locked-note">Choose where the menu sits on the screen.</p>
  </div>
 
  <!-- WALLPAPER SELECTION -->
@@ -1425,8 +1366,7 @@ const DEFAULTS = {
  homeWallpaper: '',
  confirmOnClose: true,
  confirmTabClose: false,
-  autoAboutBlank: false,
- railPosition: 'left'
+ autoAboutBlank: false
 };
 
 const WALLPAPERS = {
@@ -1590,7 +1530,6 @@ const searchInput = document.getElementById('searchInput');
 const clearSearchBtn = document.getElementById('clearSearchBtn');
 const gameModal = document.getElementById('gameModal');
 const gameFrame = document.getElementById('gameFrame');
-const frameStack = document.getElementById('frameStack');
 const modalError = document.getElementById('modalError');
 const particlesEl = document.getElementById('particles');
 const filterBar = document.getElementById('filterBar');
@@ -1880,12 +1819,6 @@ function refreshHomeWallpaperUI() {
  }
 }
 
-function applyRailPosition() {
-  const pos = settings.railPosition || 'left';
-  document.body.classList.remove('rail-pos-left', 'rail-pos-right', 'rail-pos-bottom');
-  document.body.classList.add('rail-pos-' + pos);
-}
-
 function applySettings() {
  const root = document.documentElement;
  root.style.setProperty('--primary', settings.primary);
@@ -1919,8 +1852,6 @@ function applySettings() {
  document.body.style.backgroundSize = 'cover';
  }
  applyHomeWallpaper();
- applyRailPosition();
- document.body.classList.toggle('has-wallpaper', !!selectedWallpaper || !!(settings.homeWallpaper || '').trim());
 
  document.body.style.backgroundColor = settings.bg;
  document.body.classList.toggle('reduced-motion', settings.reducedMotion);
@@ -2522,7 +2453,7 @@ function navigateProxy(raw) {
     proxyHistory.push(url);
     if (proxyHistory.length > 40) proxyHistory.shift();
   }
-  currentFrame().src = buildProxySrc(url);
+  gameFrame.src = buildProxySrc(url);
   syncActiveTab(url);
 }
 
@@ -2603,32 +2534,9 @@ function closeMusicPlayer() {
 })();
 
 /* ===================== BROWSER TABS ===================== */
-/* Each tab owns its own iframe (kept alive in #frameStack) so switching tabs
-   just shows/hides an iframe instead of reassigning .src - that reassignment
-   was what caused the other tab to reload every time you tabbed back to it. */
 let proxyTabs = [];
 let activeTabId = null;
 let proxyTabSeq = 0;
-
-function makeProxyFrame() {
-  const f = document.createElement('iframe');
-  f.className = 'proxy-frame';
-  f.setAttribute('allowfullscreen', 'true');
-  f.setAttribute('allow', gameFrame.getAttribute('allow') || '');
-  f.setAttribute('referrerpolicy', 'no-referrer');
-  f.setAttribute('loading', 'eager');
-  frameStack.appendChild(f);
-  return f;
-}
-function setActiveFrame(frame) {
-  frameStack.querySelectorAll('.proxy-frame').forEach(f => {
-    f.classList.toggle('active-frame', f === frame);
-  });
-}
-function currentFrame() {
-  const t = activeTab();
-  return (t && t.frame) ? t.frame : gameFrame;
-}
 
 function faviconFor(url) {
   try {
@@ -2646,14 +2554,10 @@ function activeTab() {
   return proxyTabs.find(t => t.id === activeTabId) || null;
 }
 function resetProxyTabs() {
-  // Drop any extra iframes left over from a previous proxy session; keep the original.
-  frameStack.querySelectorAll('.proxy-frame').forEach(f => { if (f !== gameFrame) f.remove(); });
-  gameFrame.src = 'about:blank';
-  setActiveFrame(gameFrame);
   proxyTabs = [];
   activeTabId = null;
   proxyTabSeq = 0;
-  const t = { id: ++proxyTabSeq, url: null, history: [], frame: gameFrame };
+  const t = { id: ++proxyTabSeq, url: null, history: [] };
   proxyTabs.push(t);
   activeTabId = t.id;
   proxyHistory = t.history;
@@ -2669,19 +2573,17 @@ function syncActiveTab(url) {
 function newProxyTab(url) {
   const cur = activeTab();
   if (cur) cur.history = proxyHistory;
-  const frame = makeProxyFrame();
-  const t = { id: ++proxyTabSeq, url: url || null, history: [], frame };
+  const t = { id: ++proxyTabSeq, url: url || null, history: [] };
   proxyTabs.push(t);
   activeTabId = t.id;
   proxyHistory = t.history;
-  setActiveFrame(frame);
   const addr = document.getElementById('proxyAddress');
   if (url) {
     navigateProxy(url);
   } else {
     if (addr) { addr.value = ''; setTimeout(() => { addr.focus(); }, 60); }
     activeSessionUrl = null;
-    frame.src = 'about:blank';
+    gameFrame.src = 'about:blank';
     showProxyHome(true);
   }
   renderProxyTabs();
@@ -2694,16 +2596,15 @@ function switchProxyTab(id) {
   if (!next) return;
   activeTabId = id;
   proxyHistory = next.history;
-  // Just swap which iframe is visible - never touch .src here, that's what was
-  // forcing the other tab to reload every time you switched back to it.
-  setActiveFrame(next.frame);
   const addr = document.getElementById('proxyAddress');
   if (addr) addr.value = next.url || '';
   if (next.url) {
     showProxyHome(false);
     activeSessionUrl = next.url;
+    gameFrame.src = buildProxySrc(next.url);
   } else {
     activeSessionUrl = null;
+    gameFrame.src = 'about:blank';
     showProxyHome(true);
   }
   renderProxyTabs();
@@ -2716,13 +2617,12 @@ function closeProxyTab(id) {
     const addr = document.getElementById('proxyAddress');
     if (addr) addr.value = '';
     activeSessionUrl = null;
+    gameFrame.src = 'about:blank';
     showProxyHome(true);
     return;
   }
-  const closing = proxyTabs[idx];
   const wasActive = id === activeTabId;
   proxyTabs.splice(idx, 1);
-  if (closing.frame && closing.frame !== gameFrame) closing.frame.remove();
   if (wasActive) {
     const next = proxyTabs[Math.max(0, idx - 1)];
     activeTabId = null;
@@ -2935,6 +2835,232 @@ function injectBaseHref(html, pageUrl) {
   return tag + html;
 }
 
+/** Helps Minecraft / Eaglercraft / other canvas games lock the cursor inside blob or iframe loads. */
+/**
+ * Pointer lock for Minecraft / FPS — works in normal tabs AND restricted embeds
+ * (Google Apps Script, Google Sites, SVG wrappers) that block real pointer-lock.
+ *
+ * Strategy:
+ * 1) Try real requestPointerLock (no forced lock on menus).
+ * 2) If the host sandbox blocks it → soft-lock: hide cursor, feed movementX/Y,
+ *    pretend document.pointerLockElement is set so Eaglercraft / FPS games work.
+ */
+function injectPointerLockHelper(html) {
+  if (!html || /__axiomPointerLockHelper/i.test(html)) return html;
+  const helper = `<script>(function(){
+if(window.__axiomPointerLockHelper)return;
+window.__axiomPointerLockHelper=true;
+
+var _nativeRPL =
+  HTMLElement.prototype.requestPointerLock ||
+  Element.prototype.requestPointerLock ||
+  HTMLElement.prototype.mozRequestPointerLock ||
+  Element.prototype.mozRequestPointerLock ||
+  HTMLElement.prototype.webkitRequestPointerLock ||
+  Element.prototype.webkitRequestPointerLock ||
+  null;
+var _nativeEPL =
+  Document.prototype.exitPointerLock ||
+  document.exitPointerLock ||
+  Document.prototype.mozExitPointerLock ||
+  document.mozExitPointerLock ||
+  Document.prototype.webkitExitPointerLock ||
+  document.webkitExitPointerLock ||
+  null;
+
+var _softLocked = false;
+var _softEl = null;
+var _lastX = 0, _lastY = 0, _hasLast = false;
+var _failCount = 0;
+var _styleEl = null;
+
+function focusTarget(){
+  try{window.focus();}catch(e){}
+  try{if(document.body){document.body.tabIndex=-1;document.body.focus();}}catch(e){}
+  try{var c=document.querySelector("canvas");if(c){c.tabIndex=0;c.focus();}}catch(e){}
+}
+
+function isRestrictedHost(){
+  try{
+    var h=(location.hostname||"")+(location.href||"");
+    if(/script\\.google|googleusercontent|sites\\.google|google\\.com\\/macros/i.test(h))return true;
+  }catch(e){}
+  try{ if(window!==window.top) return true; }catch(e){ return true; }
+  return false;
+}
+
+function ensureSoftStyle(){
+  if(_styleEl)return;
+  _styleEl=document.createElement("style");
+  _styleEl.id="axiom-soft-pl-style";
+  _styleEl.textContent="html.axiom-soft-pl,html.axiom-soft-pl *{cursor:none!important}";
+  (document.head||document.documentElement).appendChild(_styleEl);
+}
+
+function firePLChange(){
+  try{document.dispatchEvent(new Event("pointerlockchange"));}catch(e){}
+  try{document.dispatchEvent(new Event("mozpointerlockchange"));}catch(e){}
+  try{document.dispatchEvent(new Event("webkitpointerlockchange"));}catch(e){}
+}
+
+function startSoftLock(el){
+  if(_softLocked)return;
+  _softLocked=true;
+  _softEl=el||document.querySelector("canvas")||document.body||document.documentElement;
+  _hasLast=false;
+  ensureSoftStyle();
+  try{document.documentElement.classList.add("axiom-soft-pl");}catch(e){}
+  try{
+    Object.defineProperty(document,"pointerLockElement",{configurable:true,get:function(){return _softLocked?_softEl:null;}});
+  }catch(e){}
+  try{
+    Object.defineProperty(document,"mozPointerLockElement",{configurable:true,get:function(){return _softLocked?_softEl:null;}});
+  }catch(e){}
+  firePLChange();
+}
+
+function stopSoftLock(){
+  if(!_softLocked)return;
+  _softLocked=false;
+  _softEl=null;
+  _hasLast=false;
+  try{document.documentElement.classList.remove("axiom-soft-pl");}catch(e){}
+  firePLChange();
+}
+
+function onSoftMove(ev){
+  if(!_softLocked)return;
+  var dx=0,dy=0;
+  if(typeof ev.movementX==="number"||typeof ev.movementY==="number"){
+    dx=ev.movementX||0; dy=ev.movementY||0;
+  }else if(_hasLast){
+    dx=ev.clientX-_lastX; dy=ev.clientY-_lastY;
+  }
+  _lastX=ev.clientX; _lastY=ev.clientY; _hasLast=true;
+  if(!dx&&!dy)return;
+  try{
+    var ne=new MouseEvent("mousemove",{bubbles:true,cancelable:true,view:window,clientX:ev.clientX,clientY:ev.clientY,screenX:ev.screenX,screenY:ev.screenY});
+    try{Object.defineProperty(ne,"movementX",{get:function(){return dx;}});}catch(e){ne.movementX=dx;}
+    try{Object.defineProperty(ne,"movementY",{get:function(){return dy;}});}catch(e){ne.movementY=dy;}
+    (_softEl||document).dispatchEvent(ne);
+  }catch(e){}
+}
+
+document.addEventListener("mousemove",onSoftMove,true);
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="Escape"&&_softLocked){ stopSoftLock(); }
+},true);
+
+function tryNative(el, opts){
+  if(!_nativeRPL||!el)return null;
+  try{focusTarget();}catch(e){}
+  try{
+    if(opts!==undefined)return _nativeRPL.call(el,opts);
+    return _nativeRPL.call(el);
+  }catch(e1){
+    try{return _nativeRPL.call(el);}catch(e2){return null;}
+  }
+}
+
+function requestLock(el, opts){
+  if(!el)el=document.querySelector("canvas")||document.body||document.documentElement;
+  // Prefer real lock when possible
+  var ret=tryNative(el, opts);
+  // Restricted hosts (Google Script / Sites / nested iframes): soft-lock immediately
+  // so Minecraft works without waiting for a failed native attempt.
+  if(isRestrictedHost()){
+    setTimeout(function(){
+      if(!document.pointerLockElement||document.pointerLockElement===null){
+        // native may still be pending; if after a tick nothing locked, soft-lock
+        if(!_softLocked && !document.pointerLockElement) startSoftLock(el);
+      }
+    }, 120);
+  }
+  return ret;
+}
+
+function exitLock(){
+  stopSoftLock();
+  if(_nativeEPL){
+    try{return _nativeEPL.call(document);}catch(e){}
+  }
+}
+
+function installWrapper(){
+  var wrapped=function(opts){ return requestLock(this, opts); };
+  var exitWrapped=function(){ return exitLock(); };
+  try{Element.prototype.requestPointerLock=wrapped;}catch(e){}
+  try{HTMLElement.prototype.requestPointerLock=wrapped;}catch(e){}
+  try{Element.prototype.mozRequestPointerLock=wrapped;}catch(e){}
+  try{HTMLElement.prototype.mozRequestPointerLock=wrapped;}catch(e){}
+  try{Element.prototype.webkitRequestPointerLock=wrapped;}catch(e){}
+  try{HTMLElement.prototype.webkitRequestPointerLock=wrapped;}catch(e){}
+  try{Document.prototype.exitPointerLock=exitWrapped;}catch(e){}
+  try{document.exitPointerLock=exitWrapped;}catch(e){}
+  try{Document.prototype.mozExitPointerLock=exitWrapped;}catch(e){}
+  try{document.mozExitPointerLock=exitWrapped;}catch(e){}
+}
+
+function wireCanvas(){
+  try{
+    document.querySelectorAll("canvas").forEach(function(c){
+      if(c.__axiomPlWired)return;
+      c.__axiomPlWired=true;
+      if(!c.hasAttribute("tabindex"))c.setAttribute("tabindex","0");
+      c.addEventListener("mousedown",function(){try{c.focus();}catch(e){}},true);
+      c.addEventListener("click",function(){try{c.focus();}catch(e){}},true);
+    });
+  }catch(e){}
+}
+
+// Native failed (sandbox / no gesture) → soft-lock so games still aim
+document.addEventListener("pointerlockerror",function(){
+  _failCount++;
+  try{focusTarget();}catch(e){}
+  var el=document.querySelector("canvas")||document.body||document.documentElement;
+  // After first failure, use soft lock (Google Script never grants real lock)
+  startSoftLock(el);
+},true);
+
+// Also listen: if restricted host and game already called lock but nothing stuck
+var _watch=setInterval(function(){
+  if(!isRestrictedHost())return;
+  // no-op keeper; soft path handles requests
+}, 5000);
+
+installWrapper();
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",function(){focusTarget();wireCanvas();});
+}else{focusTarget();wireCanvas();}
+setInterval(wireCanvas,2000);
+})();<\/script>`;
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, (m) => m + helper);
+  }
+  if (/<body[^>]*>/i.test(html)) {
+    return html.replace(/<body[^>]*>/i, (m) => m + helper);
+  }
+  return helper + html;
+}
+
+function focusGameFrame() {
+  try {
+    if (!gameFrame) return;
+    gameFrame.setAttribute('tabindex', '0');
+    gameFrame.focus({ preventScroll: true });
+    if (gameFrame.contentWindow) {
+      try { gameFrame.contentWindow.focus(); } catch (_) {}
+      try {
+        var doc = gameFrame.contentDocument || gameFrame.contentWindow.document;
+        if (doc && doc.body) {
+          doc.body.tabIndex = -1;
+          doc.body.focus();
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+
 async function fetchGameHtml(url) {
   const bust = url + (url.includes('?') ? '&' : '?') + 'ax=' + Date.now();
   const res = await fetch(bust, { mode: 'cors', credentials: 'omit' });
@@ -2942,6 +3068,7 @@ async function fetchGameHtml(url) {
   let html = await res.text();
   if (!html || html.length < 40) throw new Error('empty');
   html = injectBaseHref(html, url);
+  html = injectPointerLockHelper(html);
   return html;
 }
 
@@ -2955,7 +3082,27 @@ function loadHtmlIntoFrame(html) {
   currentBlobUrl = URL.createObjectURL(blob);
   gameFrame.style.display = 'block';
   gameFrame.style.visibility = 'visible';
+  const onReady = () => {
+    focusGameFrame();
+    setTimeout(focusGameFrame, 80);
+    setTimeout(focusGameFrame, 250);
+    setTimeout(focusGameFrame, 700);
+  };
+  gameFrame.addEventListener('load', onReady, { once: true });
   gameFrame.src = currentBlobUrl;
+  // Keep focus on the game so requestPointerLock is allowed after you click in-world
+  if (!gameModal.__axiomFocusWired) {
+    gameModal.__axiomFocusWired = true;
+    gameModal.addEventListener('mousedown', (e) => {
+      if (e.target === gameFrame || e.target === gameModal || e.target.id === 'proxyLoadScreen') {
+        focusGameFrame();
+      }
+    });
+    gameFrame.addEventListener('mousedown', () => focusGameFrame());
+    gameFrame.addEventListener('mouseenter', () => focusGameFrame());
+    // Clicking the iframe transfers user activation into the game document
+    gameFrame.addEventListener('click', () => focusGameFrame());
+  }
 }
 
 function prepareGameModal(name) {
@@ -2983,6 +3130,9 @@ function prepareGameModal(name) {
   showModalChrome();
   clearTimeout(modalChromeHideTimer);
   modalChromeHideTimer = setTimeout(hideModalChrome, 1800);
+  // Focus iframe so Minecraft / pointer-lock games can capture the cursor on click
+  setTimeout(focusGameFrame, 50);
+  setTimeout(focusGameFrame, 300);
 }
 
 /** Proxy path for hosts that block iframes */
@@ -3004,13 +3154,12 @@ function openProxiedInModal(name, url) {
     })
     .catch((err) => {
       console.warn('[Axiom] fetch failed, trying proxy', err);
+      gameFrame.addEventListener('load', focusGameFrame, { once: true });
       gameFrame.src = buildProxySrc(real);
+      setTimeout(focusGameFrame, 200);
       setTimeout(() => {
         hideProxyLoadScreen();
-        // If still useless, last try: open in a new tab
-        setTimeout(() => {
-          if (!gameModal.classList.contains('open')) return;
-        }, 2000);
+        setTimeout(focusGameFrame, 100);
       }, 4000);
     });
 }
@@ -3030,6 +3179,23 @@ function gameNeedsProxy(game) {
   return false;
 }
 
+/** True when Axiom itself is inside Google Apps Script / Sites / nested iframe that blocks real pointer-lock. */
+function isRestrictedEmbed() {
+  try {
+    const h = String(location.hostname || '') + ' ' + String(location.href || '');
+    if (/script\.google|googleusercontent\.com|sites\.google|google\.com\/macros/i.test(h)) return true;
+  } catch (_) {}
+  try {
+    if (window !== window.top) {
+      // Nested iframe (SVG wrapper, school portal, etc.) — pointer-lock often blocked
+      return true;
+    }
+  } catch (_) {
+    return true;
+  }
+  return false;
+}
+
 function openGame(game) {
   if (!game) return;
   const url = String(game.resolvedUrl || '').trim();
@@ -3042,7 +3208,7 @@ function openGame(game) {
   try { addToRecent(game); } catch (_) {}
   try { trackGameOpen(game); } catch (_) {}
 
-  // about:blank stealth: still use HTML blob so it RENDERS, not source code
+  // about:blank ONLY if the user turned it on in Settings — never forced
   if (settings.openAboutBlank) {
     fetchGameHtml(url)
       .then((html) => {
@@ -3114,11 +3280,16 @@ function openInModal(name, url, game) {
       console.warn('[Axiom] HTML fetch failed', err);
       hideProxyLoadScreen();
       // Direct iframe only — no proxy for Axiom / GN / Noah
+      gameFrame.addEventListener('load', focusGameFrame, { once: true });
       gameFrame.src = target;
+      setTimeout(focusGameFrame, 200);
       if (!noProxy) {
         setTimeout(() => {
           if (!gameModal.classList.contains('open')) return;
-          try { gameFrame.src = buildProxySrc(target); } catch (_) {}
+          try {
+            gameFrame.addEventListener('load', focusGameFrame, { once: true });
+            gameFrame.src = buildProxySrc(target);
+          } catch (_) {}
         }, 5000);
       }
     });
@@ -3136,8 +3307,6 @@ function closeModal() {
  gameModal.style.display = 'none';
  document.body.style.overflow = '';
  gameFrame.src = 'about:blank';
- // Drop any extra proxy tabs' iframes so background tabs (audio/video) stop running.
- frameStack.querySelectorAll('.proxy-frame').forEach(f => { if (f !== gameFrame) f.remove(); });
  hideModalError();
  if (typeof hideProxyLoadScreen === 'function') hideProxyLoadScreen();
  activeSessionName = null;
@@ -3148,6 +3317,25 @@ function closeModal() {
  document.exitFullscreen().catch(() => {});
  }
 }
+
+/* LINKS MODAL HANDLERS */
+const linksModal = document.getElementById('linksModal');
+const linksFrame = document.getElementById('linksFrame');
+const closeLinksBtn = document.getElementById('closeLinksBtn');
+
+function openLinksModal() {
+ linksFrame.src = 'https://sites.google.com/view/allabouturanium';
+ linksModal.style.display = 'flex';
+ document.body.style.overflow = 'hidden';
+}
+
+function closeLinksModal() {
+ linksModal.style.display = 'none';
+ linksFrame.src = 'about:blank';
+ document.body.style.overflow = '';
+}
+
+if (closeLinksBtn) closeLinksBtn.onclick = closeLinksModal;
 
 document.getElementById('fullscreenBtn').onclick = () => {
  if (!document.fullscreenElement) {
@@ -3412,8 +3600,6 @@ function openSettings() {
  if (cloakIconEl) cloakIconEl.value = settings.cloakIcon || '';
  document.getElementById('setOpenAboutBlank').checked = !!settings.openAboutBlank;
  document.getElementById('setWallpaper').value = settings.wallpaper || 'none';
- const railPosSel = document.getElementById('setRailPosition');
- if (railPosSel) railPosSel.value = settings.railPosition || 'left';
  const cc = document.getElementById('setConfirmClose');
  if (cc) cc.checked = settings.confirmOnClose !== false;
  const ctc = document.getElementById('setConfirmTabClose');
@@ -3526,6 +3712,7 @@ const APPS = [
  { name:'Webtoon',     url:'https://www.webtoons.com/',          icon:'https://www.google.com/s2/favicons?sz=256&domain=webtoons.com' },
  { name:'Pinterest',   url:'https://www.pinterest.com/',         icon:'https://www.google.com/s2/favicons?sz=256&domain=pinterest.com' },
  { name:'Blooket Bot', url:'https://blooketbot.schoolcheats.net/', icon:'https://www.google.com/s2/favicons?sz=256&domain=blooketbot.schoolcheats.net' },
+ { name:'Axiom Back Up Links', url:'https://sites.google.com/view/allabouturanium', icon:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><rect width='128' height='128' rx='30' fill='%237c5cff'/><g transform='translate(30.4,30.4) scale(2.8)' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/><path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/></g></svg>", newTab:true },
 ];
 const appsBtn = document.getElementById('appsBtn');
 const appsPage = document.getElementById('appsPage');
@@ -3540,7 +3727,7 @@ function renderApps(filter) {
   const t = document.createElement('button');
   t.type = 'button';
   t.className = 'app-tile';
-  t.innerHTML = '<span class="app-icon-wrap"><img src="' + a.icon + '" alt="' + a.name + '" loading="lazy" onerror="this.style.display=\'none\'"></span>' +
+  t.innerHTML = '<img src="' + a.icon + '" alt="' + a.name + '" loading="lazy" onerror="this.style.display=\'none\'">' +
                 '<span class="app-name">' + a.name + '</span>';
   t.onclick = () => {
    closeAppsPage();
@@ -3607,8 +3794,6 @@ if (cloakIconInput) {
 }
 document.getElementById('setOpenAboutBlank').onchange = e => { settings.openAboutBlank = e.target.checked; saveSettings(); };
 document.getElementById('setWallpaper').onchange = e => { settings.wallpaper = e.target.value; applySettings(); saveSettings(); };
-const railPosInput = document.getElementById('setRailPosition');
-if (railPosInput) railPosInput.onchange = e => { settings.railPosition = e.target.value; applyRailPosition(); saveSettings(); };
 document.getElementById('setPanicUrl').oninput = e => { settings.panicUrl = e.target.value; saveSettings(); };
 const confirmCloseEl = document.getElementById('setConfirmClose');
 if (confirmCloseEl) confirmCloseEl.onchange = e => { settings.confirmOnClose = e.target.checked; saveSettings(); };
@@ -3749,7 +3934,7 @@ let proxyHistory = [];
     proxyHistory = [];
     const t = typeof activeTab === 'function' ? activeTab() : null;
     if (t) { t.url = null; t.history = proxyHistory; renderProxyTabs(); }
-    currentFrame().src = 'about:blank';
+    gameFrame.src = 'about:blank';
     activeSessionUrl = null;
     showProxyHome(true);
   };
@@ -3758,11 +3943,11 @@ let proxyHistory = [];
       proxyHistory.pop();
       const prev = proxyHistory[proxyHistory.length - 1];
       if (addr) addr.value = prev;
-      currentFrame().src = buildProxySrc(prev);
+      gameFrame.src = buildProxySrc(prev);
       activeSessionUrl = prev;
     } else {
       if (addr) addr.value = '';
-      currentFrame().src = 'about:blank';
+      gameFrame.src = 'about:blank';
       activeSessionUrl = null;
       proxyHistory = [];
       showProxyHome(true);
@@ -3770,9 +3955,9 @@ let proxyHistory = [];
   };
   if (reloadBtn) reloadBtn.onclick = () => {
     if (activeSessionUrl) {
-      currentFrame().src = buildProxySrc(activeSessionUrl);
+      gameFrame.src = buildProxySrc(activeSessionUrl);
     } else {
-      currentFrame().src = 'about:blank';
+      gameFrame.src = 'about:blank';
       showProxyHome(true);
     }
   };
