@@ -4497,6 +4497,53 @@ window.addEventListener('load', () => {
   ==================================================== */
   const USERNAME_DOMAIN = 'axiom-users.app';
   let currentUser = null;
+  const PROXY_ANNOUNCEMENT_DISMISSED_KEY = 'axiomProxyAnnouncementDismissed';
+
+  function closeProxyAnnouncement() {
+    const modal = $('proxyAnnouncementModal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  function ensureProxyAnnouncementUI() {
+    injectAuthStyles();
+    if ($('proxyAnnouncementModal')) return;
+    const modal = el('div', 'proxy-warning-modal');
+    modal.id = 'proxyAnnouncementModal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'proxyAnnouncementTitle');
+    modal.innerHTML = `
+      <div class="proxy-warning-card">
+        <button type="button" class="proxy-warning-close" id="proxyAnnouncementClose" aria-label="Close announcement">&times;</button>
+        <h2 id="proxyAnnouncementTitle">Your proxy isnt working on .b-cdn.net</h2>
+        <p>Try one of these links instead:</p>
+        <div class="proxy-warning-links">
+          <a class="proxy-warning-link" href="https://axiom-22e53.kxcdn.com/" target="_blank" rel="noopener noreferrer">https://axiom-22e53.kxcdn.com/</a>
+          <a class="proxy-warning-link" href="https://script.google.com/macros/s/AKfycbx9ngwHMHQiIFwpbvnjzVXYnUscWyX0DrO7y6P6DZAT_52IhzT_71Ei_apczy79B6fC/exec?id=CM0" target="_blank" rel="noopener noreferrer">https://script.google.com/macros/s/AKfycbx9ngwHMHQiIFwpbvnjzVXYnUscWyX0DrO7y6P6DZAT_52IhzT_71Ei_apczy79B6fC/exec?id=CM0</a>
+          <a class="proxy-warning-link" href="https://cdn.jsdelivr.net/gh/Onex558/p2p-svg-1@8f93a47855d5bdb174b2231de815fbb0f91cf1e2/yoursitename-fetch-310.svg" target="_blank" rel="noopener noreferrer">https://cdn.jsdelivr.net/gh/Onex558/p2p-svg-1@8f93a47855d5bdb174b2231de815fbb0f91cf1e2/yoursitename-fetch-310.svg</a>
+        </div>
+        <button type="button" class="proxy-warning-dismiss" id="proxyAnnouncementDismiss">Don't show this again</button>
+      </div>`;
+    document.body.appendChild(modal);
+
+    $('proxyAnnouncementClose').onclick = closeProxyAnnouncement;
+    modal.addEventListener('click', e => { if (e.target === modal) closeProxyAnnouncement(); });
+    $('proxyAnnouncementDismiss').onclick = () => {
+      try { localStorage.setItem(PROXY_ANNOUNCEMENT_DISMISSED_KEY, '1'); } catch (_) {}
+      closeProxyAnnouncement();
+    };
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeProxyAnnouncement();
+    });
+  }
+
+  function showProxyAnnouncementOnOpen() {
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(PROXY_ANNOUNCEMENT_DISMISSED_KEY) === '1'; } catch (_) {}
+    if (dismissed) return;
+    ensureProxyAnnouncementUI();
+    $('proxyAnnouncementModal')?.classList.add('open');
+  }
 
   function normUser(u){ return String(u||'').trim().toLowerCase(); }
   function userToEmail(u){ return normUser(u) + '@' + USERNAME_DOMAIN; }
@@ -4568,7 +4615,19 @@ window.addEventListener('load', () => {
       .auth-avatar-edit:hover{filter:brightness(1.15)}
       .auth-me b{display:block;font-size:1.05em}.auth-me span{font-size:.78em;color:var(--muted,#7a7a92)}
       .auth-ghost{width:100%;padding:11px;border-radius:12px;border:1px solid var(--border,rgba(255,255,255,.12));background:transparent;color:var(--text,#fff);font-family:inherit;font-weight:700;cursor:pointer;margin-top:8px}
-      .auth-ghost:hover{background:rgba(255,255,255,.05)}
+       .auth-ghost:hover{background:rgba(255,255,255,.05)}
+       .proxy-warning-modal{display:none;position:fixed;inset:0;z-index:21000;background:rgba(0,0,0,.72);align-items:center;justify-content:center;padding:16px}
+       .proxy-warning-modal.open{display:flex}
+       .proxy-warning-card{position:relative;width:min(560px,100%);max-height:min(88vh,680px);overflow:auto;background:rgba(12,12,20,.99);border:1px solid rgba(139,108,255,.38);border-radius:18px;padding:28px 26px 24px;box-shadow:0 24px 80px rgba(0,0,0,.62),0 0 45px rgba(139,108,255,.12)}
+       .proxy-warning-card h2{margin:0 38px 8px 0;color:var(--primary,#8b6cff);font-size:1.25em;line-height:1.2}
+       .proxy-warning-card p{margin:0;color:var(--muted,#7a7a92);font-size:.9em;line-height:1.55}
+       .proxy-warning-links{display:flex;flex-direction:column;gap:10px;margin:18px 0 22px}
+       .proxy-warning-link{display:block;padding:11px 13px;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:11px;background:rgba(255,255,255,.035);color:var(--text,#fff);font-size:.82em;line-height:1.35;overflow-wrap:anywhere;text-decoration:none}
+       .proxy-warning-link:hover{border-color:rgba(139,108,255,.65);background:rgba(139,108,255,.12)}
+       .proxy-warning-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:8px;background:transparent;color:var(--text,#fff);font-size:1.25em;line-height:1;cursor:pointer}
+       .proxy-warning-close:hover{background:rgba(255,255,255,.08)}
+       .proxy-warning-dismiss{width:100%;padding:12px;border:0;border-radius:12px;background:var(--primary,#8b6cff);color:#fff;font-family:inherit;font-weight:800;font-size:.92em;cursor:pointer}
+       .proxy-warning-dismiss:hover{filter:brightness(1.1)}
     `;
     document.head.appendChild(s);
   }
@@ -4814,7 +4873,7 @@ window.addEventListener('load', () => {
   function appendMessage(m){const box=$('chatMessages');if(!box)return;const empty=box.querySelector('.chat-empty');if(empty)empty.remove();const mine=!!(username&&m.username===username);const row=el('div','chat-row'+(mine?' mine':''));const time=m.created_at?new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'';row.innerHTML=`<div class="chat-bubble"><div class="chat-meta"><span class="chat-user">@${escapeHtml(m.username||'user')}</span><span class="chat-time">${time}</span></div><div class="chat-body">${escapeHtml(m.body||'')}</div></div>`;box.appendChild(row);}
     async function sendMessage(){if(!username){openUsernameModal('login');return;}const input=$('chatInput');const body=(input?.value||'').trim();if(!body)return;if(!chatChannel){connectChat();toast('Connecting to chat... try again in a moment.');return;}const payload={id:(crypto.randomUUID&&crypto.randomUUID())||(String(Date.now())+Math.random()),username:username,body:body.slice(0,500),created_at:new Date().toISOString()};input.value='';if(!messages.some(m=>m.id===payload.id)){messages.push(payload);saveCache();appendMessage(payload);scrollBottom();}try{const res=await chatChannel.send({type:'broadcast',event:'msg',payload});if(res&&res.error)toast(res.error.message||'Send failed');}catch(e){toast(e?.message||'Send failed');}}
   function updateAuthUI(){const btn=$('chatLoginBtn'),status=$('chatStatus'),input=$('chatInput'),send=$('chatSendBtn'),acc=$('railAccount');if(btn)btn.textContent=username?'@'+username:'Log in';if(status&&chatChannel)status.textContent=username?'Online as @'+username:'Connected - log in to chat';if(input){input.placeholder=username?'Say something...':'Log in to chat...';}if(acc)acc.textContent=username?'@'+username:'Log in';if(send)send.disabled=!username;}
-  async function boot(){try{injectStyles();ensureUsernameUI();ensureChatUI();await initAccounts();messages=loadCache();renderMessages();if(typeof window.showView==='function'&&!window.showView.__axiomWrapped){const originalShowView=window.showView;const wrapped=function(name){originalShowView(name);if(name==='chat')setTimeout(scrollBottom,0);};wrapped.__axiomWrapped=true;window.showView=wrapped;}connectChat();updateAuthUI();}catch(e){console.error('[Axiom username]',e);const st=$('chatStatus');if(st)st.textContent='Chat unavailable';}}
+  async function boot(){try{injectStyles();ensureUsernameUI();ensureChatUI();showProxyAnnouncementOnOpen();await initAccounts();messages=loadCache();renderMessages();if(typeof window.showView==='function'&&!window.showView.__axiomWrapped){const originalShowView=window.showView;const wrapped=function(name){originalShowView(name);if(name==='chat')setTimeout(scrollBottom,0);};wrapped.__axiomWrapped=true;window.showView=wrapped;}connectChat();updateAuthUI();}catch(e){console.error('[Axiom username]',e);const st=$('chatStatus');if(st)st.textContent='Chat unavailable';}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
 
