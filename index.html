@@ -1084,6 +1084,7 @@ body.has-wallpaper::before{ opacity:0.5; }
           <button type="button" data-source="gnmath">GN Math</button>
           <button type="button" data-source="noah">Noah's Hub</button>
           <button type="button" data-source="truffled">Truffled</button>
+      <button type="button" data-source="kh0">3kh0 Lite</button>
         </div>
       </div>
     </div>
@@ -2193,6 +2194,30 @@ async function fetchGnMathSource(src) {
  }
 }
 
+async function fetch3kh0Source() {
+  const data = await fetchFirstJson(KH0_JSON_URLS, '3kh0');
+  const list = Array.isArray(data) ? data : (data && data.games) || [];
+  if (!Array.isArray(list)) return [];
+  const abs = (path) => {
+    const v = String(path || '').trim();
+    if (!v) return '';
+    if (/^https?:\/\//i.test(v)) return v;
+    return KH0_ORIGIN + (v.startsWith('/') ? v : '/' + v);
+  };
+  return list
+    .filter(g => g && (g.title || g.name) && (g.link || g.url))
+    .map(g => ({
+      name: String(g.title || g.name).trim(),
+      author: '3kh0',
+      resolvedCover: abs(g.imgSrc || g.image || g.cover),
+      resolvedUrl: abs(g.link || g.url),
+      source: 'kh0',
+      special: [],
+      directFrame: false
+    }))
+    .filter(g => /^https?:\/\//i.test(g.resolvedUrl));
+}
+
 async function fetchNoahSource() {
  try {
   const url = 'https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/nth.js?t=' + Date.now();
@@ -2230,6 +2255,12 @@ async function fetchNoahSource() {
 
 
 /* ========== TRUFFLED (same pattern as GN Math) ========== */
+const KH0_ORIGIN = 'https://lite.3kh0.net';
+const KH0_JSON_URLS = [
+  'https://cdn.jsdelivr.net/gh/3kh0/3kh0-lite@main/config/games.json',
+  'https://raw.githubusercontent.com/3kh0/3kh0-lite/main/config/games.json'
+];
+
 const TRUFFLED_ORIGIN = 'https://truffled.lol';
 // Prefer CORS-friendly mirrors (truffled.lol itself blocks cross-origin fetch)
 const TRUFFLED_JSON_URLS = [
@@ -3014,7 +3045,7 @@ function gameNeedsProxy(game) {
   // Axiom, GN Math, and Noah's Hub load directly.
   if (src === 'axiom' || src === 'gnmath' || src === 'noah') return false;
   // Truffled uses the proxy.
-  return src === 'truffled';
+  return src === 'truffled' || src === 'kh0';
 }
 
 function openGame(game) {
