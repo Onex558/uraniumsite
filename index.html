@@ -441,6 +441,7 @@ body.rail-pos-bottom #railExpandBtn{ left:14px; right:auto; bottom:14px; }
 .src-badge.src-noah{ color:#a78bfa; }
 .src-badge.src-gnmath{ color:#7dd3fc; }
 .src-badge.src-truffled{ color:#fbbf24; }
+.src-badge.src-cloud{ color:#34d399; }
 .play-overlay{
   position:absolute; inset:0; z-index:3;
   display:flex; align-items:center; justify-content:center;
@@ -1105,6 +1106,7 @@ body.has-wallpaper::before{ opacity:0.5; }
           <button type="button" data-source="ubg98">UBG98</button>
           <button type="button" data-source="cisco">Cisco</button>
           <button type="button" data-source="ubg">Ubg</button>
+          <button type="button" data-source="cloud">Cloud / now.gg</button>
         </div>
       </div>
     </div>
@@ -1712,7 +1714,20 @@ const customGames = [
  { name:"Doom 3", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom3box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom3.html" },
    { name:"Minecraft 1.20", author:"MOjang", resolvedCover:"https://cdn.jsdelivr.net/gh/daknux/covers@main/41.png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Mathisfunallfiles@main/mc1.20.html" },
      { name:"Minecraft 1.20 if other one does not work", author:"MOjang", resolvedCover:"https://cdn.jsdelivr.net/gh/daknux/covers@main/41.png", resolvedUrl:"https://raw.githubusercontent.com/rusello25/EaglyMC-1.20/refs/heads/main/index.html" },
-   { name:"Roblox", author:"Roblox Corporation", resolvedCover:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Roblox_2022_Logo.png/512px-Roblox_2022_Logo.png", resolvedUrl:"https://now.gg/apps/a/19900/b.html", needsProxy: true, source: "axiom" },
+   
+ { name:"now.gg Cloud", author:"now.gg", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/", needsProxy: true, source: "cloud" },
+ { name:"Roblox", author:"Roblox Corporation", resolvedCover:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Roblox_2022_Logo.png/512px-Roblox_2022_Logo.png", resolvedUrl:"https://now.gg/apps/roblox-corporation/5349/roblox.html", needsProxy: true, source: "cloud" },
+ { name:"Genshin Impact", author:"miHoYo / Cognosphere", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=genshin.hoyoverse.com", resolvedUrl:"https://now.gg/apps/cognosphere-pte-ltd-/1773/genshin-impact.html", needsProxy: true, source: "cloud" },
+ { name:"Roblox Mini Games", author:"Roblox", resolvedCover:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Roblox_2022_Logo.png/256px-Roblox_2022_Logo.png", resolvedUrl:"https://now.gg/games/roblox-mini-games.html", needsProxy: true, source: "cloud" },
+ { name:"Multiplayer Games", author:"now.gg", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/games/multiplayer.html", needsProxy: true, source: "cloud" },
+ { name:"Traffic / Racing", author:"now.gg", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/games/traffic.html", needsProxy: true, source: "cloud" },
+ { name:"Popular Apps", author:"now.gg", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/games/popular-apps.html", needsProxy: true, source: "cloud" },
+ { name:"Blocky Moto Racing", author:"mobadu", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/apps/mobadu/4771/blocky-moto-racing-bike-rider.html", needsProxy: true, source: "cloud" },
+ { name:"Punch Hero", author:"Spatial.io", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/apps/spatial-io/51691/punch-hero.html", needsProxy: true, source: "cloud" },
+ { name:"Dynamons 7", author:"Azerion", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/apps/azerion-casual-games/51917/dynamons-7.html", needsProxy: true, source: "cloud" },
+ { name:"Narrow One", author:"Pelican Party", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/apps/pelican-party-studios/51551/narrow-one.html", needsProxy: true, source: "cloud" },
+ { name:"Mostly Only Up", author:"Spatial.io", resolvedCover:"https://www.google.com/s2/favicons?sz=256&domain=now.gg", resolvedUrl:"https://now.gg/apps/spatial-io/51692/mostly-only-up.html", needsProxy: true, source: "cloud" },
+
 
 
  { name:"Doom 64", author:"Midway Games", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom_64_box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom64.html" },
@@ -3403,7 +3418,7 @@ function gameNeedsProxy(game) {
   // the Axiom proxy so it is never blocked.
   const direct = ['axiom', 'gnmath', 'noah', 'nebula', 'classplay'];
   if (direct.indexOf(src) !== -1) return false;
-  return ['truffled', 'kh0', 'ubg98', 'cisco', 'ubg'].indexOf(src) !== -1;
+  return ['truffled', 'kh0', 'ubg98', 'cisco', 'ubg', 'cloud'].indexOf(src) !== -1;
 }
 
 function openGame(game) {
