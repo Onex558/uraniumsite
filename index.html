@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1713,7 +1712,7 @@ const customGames = [
  { name:"Doom 3", author:"id Software", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom3box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom3.html" },
    { name:"Minecraft 1.20", author:"MOjang", resolvedCover:"https://cdn.jsdelivr.net/gh/daknux/covers@main/41.png", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/Mathisfunallfiles@main/mc1.20.html" },
      { name:"Minecraft 1.20 if other one does not work", author:"MOjang", resolvedCover:"https://cdn.jsdelivr.net/gh/daknux/covers@main/41.png", resolvedUrl:"https://raw.githubusercontent.com/rusello25/EaglyMC-1.20/refs/heads/main/index.html" },
-   { name:" Roblox test beta ", author:"Axiom", resolvedCover:"Roblox cover ", resolvedUrl:"https://now.gg/apps/a/19900/b.html", needsProxy: true, source: "axiom" },
+   { name:"Roblox", author:"Roblox Corporation", resolvedCover:"https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Roblox_2022_Logo.png/512px-Roblox_2022_Logo.png", resolvedUrl:"https://now.gg/apps/a/19900/b.html", needsProxy: true, source: "axiom" },
 
 
  { name:"Doom 64", author:"Midway Games", resolvedCover:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/images/doom_64_box.jpg", resolvedUrl:"https://cdn.jsdelivr.net/gh/Onex558/uranium-source-@main/doom64.html" },
@@ -2650,7 +2649,7 @@ async function fetchUbgSource() {
 }
 
 async function loadAllSources() {
-  if (statusLine) statusLine.textContent = 'Loading game catalogs — please wait...';
+  if (statusLine) statusLine.textContent = 'Loading game catalogs â please wait...';
 
   const axiomGames = (Array.isArray(customGames) ? customGames : [])
     .filter(g => g && g.name && g.resolvedUrl)
@@ -3247,7 +3246,7 @@ function showProxyLoadScreen(gameName) {
   // Games can include large WebAssembly assets. Give them time to start,
   // while the open-game watchdog below still removes a genuinely dead entry.
   _plsTimers.push(setTimeout(() => {
-    if (status) status.textContent = 'Still loading — please wait...';
+    if (status) status.textContent = 'Still loading â please wait...';
   }, 12000));
   _plsHideTimer = setTimeout(hideProxyLoadScreen, 30000);
 }
@@ -3506,7 +3505,7 @@ function openInModal(name, url, game) {
     .catch((err) => {
       console.warn('[Axiom] HTML fetch failed', err);
       hideProxyLoadScreen();
-      // Direct iframe only — no proxy for Axiom / GN / Noah
+      // Direct iframe only â no proxy for Axiom / GN / Noah
        let frameLoaded = false;
        gameFrame.onerror = () => {
          if (frameLoaded) return;
@@ -3909,7 +3908,7 @@ if (sourceBtn && sourceDropdown) {
 
 /* ========== APPS PAGE ========== */
 const APPS = [
- { name:'Roblox',      url:'https://www.roblox.com/',            icon:'https://www.google.com/s2/favicons?sz=256&domain=roblox.com' },
+ { name:'Roblox',      url:'https://www.roblox.com/',            icon:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/Roblox_2022_Logo.png/128px-Roblox_2022_Logo.png' },
  { name:'Snapchat',    url:'https://web.snapchat.com/',          icon:'https://www.google.com/s2/favicons?sz=256&domain=snapchat.com' },
  { name:'TikTok',      url:'https://www.tiktok.com/',            icon:'https://www.google.com/s2/favicons?sz=256&domain=tiktok.com' },
  { name:'Spotify',     url:'https://open.spotify.com/',          icon:'https://www.google.com/s2/favicons?sz=256&domain=spotify.com' },
@@ -4642,7 +4641,7 @@ window.addEventListener('load', () => {
     modal.innerHTML = `
       <div class="auth-card">
         <button type="button" class="auth-close" id="authCloseBtn">&times;</button>
-        <div class="auth-brand"><span class="auth-logo">A</span><div><h2 id="authTitle" style="margin:0">Welcome to Axiom</h2><p class="auth-sub" id="authSubtitle" style="margin:2px 0 0">Log in or create a free account.</p></div></div>
+        <div class="auth-brand"><span class="auth-logo">A</span><div><h2 id="authTitle" style="margin:0">Welcome to Axiom</h2><p class="auth-sub" id="authSubtitle" style="margin:2px 0 0">Enter a username to chat & track progress (no password).</p></div></div>
 
         <div id="authGuest">
           <div class="auth-tabs">
@@ -4653,20 +4652,11 @@ window.addEventListener('load', () => {
             <div class="auth-field">
               <label for="authUsername">Username</label>
               <input id="authUsername" type="text" maxlength="20" minlength="3" placeholder="cool_player" autocomplete="username" spellcheck="false" required>
-              <p class="auth-hint" id="userHint">3-20 letters, numbers or _</p>
-            </div>
-            <div class="auth-field">
-              <label for="authPassword">Password</label>
-              <input id="authPassword" type="password" maxlength="72" minlength="6" placeholder="••••••••" autocomplete="current-password" required>
-              <div class="auth-strength" id="pwStrength" hidden><i></i></div>
-            </div>
-            <div class="auth-field" id="confirmWrap" hidden>
-              <label for="authConfirm">Confirm password</label>
-              <input id="authConfirm" type="password" maxlength="72" placeholder="••••••••" autocomplete="new-password">
+              <p class="auth-hint" id="userHint">3-20 letters, numbers or _ â no password needed</p>
             </div>
             <p class="auth-error" id="authError" hidden></p>
             <p class="auth-note" id="authNote" hidden></p>
-            <button type="submit" class="auth-submit" id="authSubmit">Log in</button>
+            <button type="submit" class="auth-submit" id="authSubmit">Continue</button>
           </form>
         </div>
 
@@ -4698,9 +4688,12 @@ window.addEventListener('load', () => {
       hint.textContent = 'Uploading...';
       try {
         const dataUrl = await resizeImageToDataUrl(file, 256);
-        const { data, error } = await sb.auth.updateUser({ data: { avatar_url: dataUrl } });
-        if (error) throw error;
-        currentUser = data.user;
+        if (currentUser) {
+          currentUser.user_metadata = currentUser.user_metadata || {};
+          currentUser.user_metadata.avatar_url = dataUrl;
+          // Persist avatar locally
+          try { localStorage.setItem('axiomAvatar_' + (username||''), dataUrl); } catch (_) {}
+        }
         renderAccountModal();
         toast('Profile picture updated');
       } catch (err) {
@@ -4710,20 +4703,17 @@ window.addEventListener('load', () => {
       }
     };
 
-    let mode = 'login';
     const err = $('authError'), note = $('authNote');
     const showErr = m => { err.textContent = m; err.hidden = false; note.hidden = true; };
     const showNote = m => { note.textContent = m; note.hidden = false; err.hidden = true; };
 
+    // Simple username-only mode (no password)
     function setMode(next){
-      mode = next;
-      $('tabLogin').classList.toggle('active', mode === 'login');
-      $('tabSignup').classList.toggle('active', mode === 'signup');
-      $('confirmWrap').hidden = mode === 'login';
-      $('pwStrength').hidden = mode === 'login';
-      $('authSubmit').textContent = mode === 'login' ? 'Log in' : 'Create my account';
-      $('authPassword').setAttribute('autocomplete', mode === 'login' ? 'current-password' : 'new-password');
-      $('authSubtitle').textContent = mode === 'login' ? 'Welcome back - your progress is saved.' : 'Pick a username nobody has taken yet.';
+      // Keep tabs visually for familiarity but both do the same thing
+      $('tabLogin').classList.toggle('active', next === 'login');
+      $('tabSignup').classList.toggle('active', next === 'signup');
+      $('authSubmit').textContent = 'Continue';
+      $('authSubtitle').textContent = 'Pick a username to chat and track progress. No password needed.';
       err.hidden = true; note.hidden = true;
     }
 
@@ -4733,76 +4723,36 @@ window.addEventListener('load', () => {
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') modal.classList.remove('open'); });
 
-    $('authPassword').addEventListener('input', e => {
-      const v = e.target.value, bar = $('pwStrength');
-      let score = 0;
-      if (v.length >= 6) score++;
-      if (v.length >= 10) score++;
-      if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
-      if (/[0-9]/.test(v)) score++;
-      if (/[^A-Za-z0-9]/.test(v)) score++;
-      bar.classList.toggle('ok', score >= 3);
-      bar.classList.toggle('good', score >= 4);
-      bar.firstElementChild.style.width = Math.min(100, score * 22) + '%';
-    });
-
     $('usernameForm').onsubmit = async e => {
       e.preventDefault();
       const name = $('authUsername').value.trim();
-      const pass = $('authPassword').value;
       const btn = $('authSubmit');
       if (!/^[A-Za-z0-9_]{3,20}$/.test(name)) return showErr('Usernames use 3-20 letters, numbers or _');
-      if (pass.length < 6) return showErr('Password must be at least 6 characters.');
-      if (mode === 'signup' && pass !== $('authConfirm').value) return showErr('Passwords do not match.');
 
       btn.disabled = true;
-      btn.textContent = mode === 'login' ? 'Logging in...' : 'Creating account...';
+      btn.textContent = 'Saving...';
       try {
-        if (mode === 'signup') {
-          const { data, error } = await sb.auth.signUp({
-            email: userToEmail(name),
-            password: pass,
-            options: { data: { username: name } }
-          });
-          if (error) {
-            if (/already registered|already been registered|exists/i.test(error.message)) {
-              showErr('That username is taken. Try another one.');
-            } else if (/rate/i.test(error.message)) {
-              showErr('Too many attempts. Wait a minute and try again.');
-            } else showErr(error.message);
-            return;
-          }
-          if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-            return showErr('That username is taken. Try another one.');
-          }
-          if (!data.session) {
-            const signedIn = await sb.auth.signInWithPassword({ email: userToEmail(name), password: pass });
-            if (signedIn.error) {
-              showNote('Account created. Confirm it, then log in.');
-              return;
-            }
-          }
-          toast('Account created - welcome, @' + name);
-        } else {
-          const { error } = await sb.auth.signInWithPassword({ email: userToEmail(name), password: pass });
-          if (error) {
-            showErr(/invalid/i.test(error.message) ? 'Wrong username or password.' : error.message);
-            return;
-          }
-          toast('Welcome back, @' + name);
-        }
-        $('authPassword').value = ''; if ($('authConfirm')) $('authConfirm').value = '';
+        // Local-only username (no password / no Supabase Auth)
+        const fakeUser = {
+          id: 'local_' + name.toLowerCase(),
+          user_metadata: { username: name },
+          email: name.toLowerCase() + '@axiom-users.app'
+        };
+        applyUser(fakeUser);
+        try { localStorage.setItem('axiomUsername', name); } catch (_) {}
+        toast('Welcome, @' + name);
         modal.classList.remove('open');
       } catch (e3) {
         showErr(e3?.message || 'Something went wrong. Try again.');
       } finally {
         btn.disabled = false;
-        btn.textContent = mode === 'login' ? 'Log in' : 'Create my account';
+        btn.textContent = 'Continue';
       }
     };
 
     $('signOutBtn').onclick = async () => {
-      try { await sb.auth.signOut(); } catch (_) {}
+      applyUser(null);
+      try { localStorage.removeItem('axiomUsername'); } catch (_) {}
       modal.classList.remove('open');
       toast('Signed out');
     };
@@ -4848,11 +4798,19 @@ window.addEventListener('load', () => {
 
   async function initAccounts(){
     ensureUsernameUI();
+    // Prefer local username (password-less mode)
     try {
-      const { data } = await sb.auth.getSession();
-      applyUser(data && data.session ? data.session.user : null);
-    } catch (_) { applyUser(null); }
-    sb.auth.onAuthStateChange((_evt, session) => applyUser(session ? session.user : null));
+      const saved = localStorage.getItem('axiomUsername');
+      if (saved && /^[A-Za-z0-9_]{3,20}$/.test(saved)) {
+        applyUser({
+          id: 'local_' + saved.toLowerCase(),
+          user_metadata: { username: saved },
+          email: saved.toLowerCase() + '@axiom-users.app'
+        });
+        return;
+      }
+    } catch (_) {}
+    applyUser(null);
   }
 
   function ensureChatUI() {
